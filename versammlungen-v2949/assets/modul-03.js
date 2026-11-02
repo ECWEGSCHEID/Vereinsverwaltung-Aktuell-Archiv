@@ -1,1 +1,0 @@
-document.querySelector('[data-tab="gv"]').click();document.getElementById("boardNav").style.display="none";document.querySelectorAll("main > nav [data-tab]").forEach(b=>b.addEventListener("click",()=>{document.getElementById("boardNav").style.display=["meeting","collection","tasks","archive"].includes(b.dataset.tab)?"flex":"none"}));
