@@ -83,7 +83,7 @@ dialog{background:#202025;color:#fff;border:1px solid #a64550;box-shadow:0 24px 
 .helper-new-role{border:1px dashed #a85862;border-radius:10px;margin-top:14px;padding:13px;background:#3a242a}
 #helperTable,#helperRankingTable{width:max-content;min-width:100%;table-layout:auto}
 #helperTable th,#helperRankingTable th{min-width:95px}
-</style></head><body>
+</style><style>html:not(.tw-authorized) body > :not(#twGuard):not(script):not(style){display:none!important}</style></head><body>
 <header class="head"><div class="head-inner"><div><h1>EC Wegscheid · Turnierwirtschaftlichkeit und Helfer</h1><p>Turniere, Einnahmen, Ausgaben, Helfer und Sponsoring</p></div><div class="version">Version 2.9.27</div></div></header>
 <div id="twGuard" role="alertdialog" aria-modal="true" style="position:fixed;inset:0;background:#11080df5;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px;color:#fff;font:16px system-ui"><div style="max-width:570px;width:100%;background:#272127;border:1px solid #8f737b;border-radius:14px;padding:25px;box-shadow:0 12px 50px #000"><h2 id="twGuardTitle">Firebase-Anmeldung wird geprüft …</h2><div id="twGuardText">Bitte warten.</div><div id="twGuardActions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"></div></div></div>
 <div id="twCloudStatus" role="status" style="padding:6px 15px;background:#18151bd9;color:#fff;text-align:center;font:13px system-ui">Firebase wird verbunden …</div>
@@ -131,7 +131,7 @@ const sum=(a,fn)=>a.reduce((s,r)=>s+fn(r),0);
 function normalizeEvent(r){const out={...r};if(!Array.isArray(out.expenses)){out.expenses=num(out.otherExpense)?[{type:'Sonstige Ausgaben (übernommen)',amount:num(out.otherExpense)}]:[]}if(!out.helpers||typeof out.helpers!=='object')out.helpers={};if(out.prizeValue===undefined)out.prizeValue='';if(out.sponsoredPrize===undefined)out.sponsoredPrize='';if(out.sponsorPrize===undefined)out.sponsorPrize=0;if(out.sponsorGastro===undefined)out.sponsorGastro=0;out.expenses=out.expenses.map(e=>({...e,sponsorAmount:num(e.sponsorAmount)}));return out}
 function sponsorsFromLegacy(events){const o={};for(const [year,rows] of Object.entries(events)){o[year]=[];for(const r of rows){if(String(r.sponsorText||'').trim()||num(r.sponsorValue)){o[year].push({date:r.date||'',name:'',description:[r.title,r.sponsorText].filter(Boolean).join(' · '),kind:'Art noch offen',amount:num(r.sponsorValue),legacy:true})}}}return o}
 function makeState(){let old;try{old=JSON.parse(localStorage.getItem(OLD_DATA_KEY)||'null')}catch(e){}const events=old&&typeof old==='object'?old:structuredClone(SEED);let extra;try{extra=JSON.parse(localStorage.getItem(OLD_EXTRA_KEY)||'null')}catch(e){}return {events:Object.fromEntries(Object.entries(events).map(([y,rows])=>[y,(Array.isArray(rows)?rows:[]).map(normalizeEvent)])),sponsors:sponsorsFromLegacy(events),extra:extra||structuredClone(SEED_EXTRA)}}
-let state;try{state=JSON.parse(localStorage.getItem(STORE)||'null')||makeState()}catch(e){state=makeState()}
+let state={events:{},sponsors:{},extra:{}};
 const DEFAULT_HELPER_ROLES=['Schiedsrichter','Auswertung','Ausschank','Bedienung','Zusammenräumen'];
 function normalizeState(){state.events=state.events||{};state.sponsors=state.sponsors||{};state.extra=state.extra||{};const existingRoles=Object.values(state.events).flatMap(rows=>Array.isArray(rows)?rows.flatMap(r=>Object.keys(r.helpers||{})):[]);state.helperRoles=[...new Set([...DEFAULT_HELPER_ROLES,...(Array.isArray(state.helperRoles)?state.helperRoles:[]),...existingRoles].map(x=>String(x).trim()).filter(Boolean))];for(const y of new Set([...Object.keys(SEED),...Object.keys(state.events),...Object.keys(state.sponsors),...Object.keys(state.extra),String(new Date().getFullYear())])){state.events[y]=(state.events[y]||[]).map(normalizeEvent);state.sponsors[y]=state.sponsors[y]||[];state.extra[y]=num(state.extra[y])}}
 normalizeState();
@@ -409,15 +409,17 @@ const TW_FIREBASE_CONFIG={
  messagingSenderId:'558472054725',
  appId:'1:558472054725:web:10145e2d8d6f168b056dac'
 };
-let twReady=false,twAdmin=false,twRevision=0,twSaveError=false,twSaveChain=Promise.resolve(),twDb=null,twUser=null;
+let twReady=false,twAdmin=false,twRevision=0,twSaveError=false,twSaveChain=Promise.resolve(),twDb=null,twUser=null,twAuthEpoch=0;
 function twStatus(message){$('twCloudStatus').textContent=message;}
 function twGuard(title,message,actions=[]){
+ document.documentElement.classList.remove('tw-authorized');
  $('twGuard').style.display='flex';$('twGuardTitle').textContent=title;
  $('twGuardText').textContent=message;
  const a=$('twGuardActions');a.replaceChildren();
  for(const [label,handler] of actions){const b=document.createElement('button');b.className='primary';b.type='button';b.textContent=label;b.onclick=handler;a.append(b)}
 }
 function twUnlock(){
+ document.documentElement.classList.add('tw-authorized');
  twReady=true;twSaveError=false;$('twGuard').style.display='none';
  $('twCloudBackupCard').hidden=!twAdmin;
  $('importBackup').disabled=!twAdmin;$('resetData').disabled=!twAdmin;
@@ -431,10 +433,12 @@ function twApplyState(v){
  state=structuredClone(v);normalizeState();
  refreshYearOptions(year());
 }
-async function twLoad(){
+async function twLoad(epoch=twAuthEpoch){
+ const loadingUid=twUser?.uid;
  twReady=false;twStatus('Lade Finanzdaten aus Firebase …');
  const ref=twDb.collection('turnierWirtschaftlichkeit').doc('state');
  const snap=await ref.get({source:'server'});
+ if(epoch!==twAuthEpoch||!twUser||twUser.uid!==loadingUid)return;
  if(!snap.exists){
   twGuard('Noch keine zentralen Finanzdaten','Bitte die separat bereitgestellte private Erstdaten-JSON-Datei auswählen. Sie darf NICHT auf GitHub hochgeladen werden. Alternativ vorhandene lokale Daten übernehmen.',[
    ['Private Erstdaten-JSON auswählen',()=>twInitializeFromFile()],
@@ -443,7 +447,7 @@ async function twLoad(){
   twStatus('Firebase noch leer – Ersteinrichtung erforderlich');return;
  }
  const d=snap.data();twApplyState(d.data);twRevision=Number(d.revision)||0;
- try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}
+ /* Finanzdaten werden ausschließlich zentral bestätigt gespeichert. */
  twUnlock();
 }
 async function twInitializeFromFile(){
@@ -461,6 +465,7 @@ async function twInitializeFromFile(){
  input.click();
 }
 async function twInitializeFromLocal(){
+ if(!twUser||!(twAdmin))return alert('Lokale Erstdaten darf nur ein Administrator übernehmen.');
  const local=localStorage.getItem(STORE);
  if(!local){alert('Auf diesem Gerät sind keine lokalen V2-Daten gespeichert. Bitte die private Erstdaten-JSON auswählen.');return;}
  try{await twInitializeCandidate(JSON.parse(local))}
@@ -477,7 +482,7 @@ async function twInitializeCandidate(candidate){
    const snap=await tx.get(ref);if(snap.exists)throw Error('Ein anderer Benutzer hat die Ersteinrichtung bereits durchgeführt. Bitte neu laden.');
    tx.set(ref,{data:candidate,revision:1,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:twUser.uid});
   });
-  twApplyState(candidate);twRevision=1;try{localStorage.setItem(STORE,JSON.stringify(state))}catch(e){}
+  twApplyState(candidate);twRevision=1;/* Finanzdaten werden ausschließlich zentral bestätigt gespeichert. */
   twUnlock();
  }catch(e){twGuard('Ersteinrichtung fehlgeschlagen',e.message,[['Erneut laden',()=>location.reload()]]);}
 }
@@ -496,7 +501,7 @@ function twQueueSave(){
    tx.update(ref,{data:payload,revision:nextRevision,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:twUser.uid});
   });
   twRevision=nextRevision;
-  try{localStorage.setItem(STORE,JSON.stringify(payload))}catch(e){}
+  /* Finanzdaten werden ausschließlich zentral bestätigt gespeichert. */
   twStatus('In Firebase gespeichert · '+new Date().toLocaleTimeString('de-DE'));
  }).catch(e=>{
   twSaveError=true;twReady=false;
@@ -556,20 +561,25 @@ async function twStart(){
   const app=firebase.apps.find(x=>x.name==='[DEFAULT]')||firebase.initializeApp(TW_FIREBASE_CONFIG);
   twDb=app.firestore();
   app.auth().onAuthStateChanged(async user=>{
-   twUser=user;
+   const epoch=++twAuthEpoch;
+   if(twUser&&twUser.uid!==user?.uid){twReady=false;state={events:{},sponsors:{},extra:{}};twGuard('Anmeldung geändert','Ansicht wird zurückgesetzt.');location.reload();return;}
+   twReady=false;twAdmin=false;twUser=user;
+   state={events:{},sponsors:{},extra:{}};
+   twGuard('Zugriff wird geprüft','Bitte warten.');
    if(!user){twReady=false;twGuard('Anmeldung erforderlich','Bitte in der EC-Wegscheid-Vereinsverwaltung anmelden und anschließend diese Seite erneut öffnen.',[['Zur Vereinsverwaltung',()=>location.href='index.html']]);return;}
    try{
     const p=await twDb.collection('users').doc(user.uid).get({source:'server'});
+    if(epoch!==twAuthEpoch)return;
     const role=p.exists?p.data():{};
     twAdmin=role.admin===true;
     if(!(twAdmin||(role.tw===true&&role.whiteboard!==true))){
      twReady=false;twGuard('Kein Zugriff','Turnierwirtschaftlichkeit ist nicht freigegeben. Der Administrator kann die Berechtigung unter „Benutzer & Rechte“ vergeben.',[['Zur Vereinsverwaltung',()=>location.href='index.html']]);return;
     }
-    await twLoad();
+    await twLoad(epoch);
    }catch(e){twReady=false;twGuard('Firebase-Verbindung fehlgeschlagen',e.message,[['Erneut laden',()=>location.reload()]]);}
   },e=>twGuard('Anmeldung fehlgeschlagen',e.message));
  }catch(e){twGuard('Firebase nicht verfügbar',e.message,[['Erneut laden',()=>location.reload()]]);}
 }
 
-refreshYearOptions('2026');render();twStart();
+twStart();
 </script></body></html>

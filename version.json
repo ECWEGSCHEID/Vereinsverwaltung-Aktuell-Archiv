@@ -1,11 +1,11 @@
 {
-  "version": "2.9.41",
-  "release": "V2.9.41 – Cup SKMR Finalgruppe B Übernahme/Löschen und Archiv zurück",
+  "version": "2.9.54",
+  "release": "V2.9.54 – bereinigtes Programm ohne mitgelieferte Versammlungsdaten; Finanzzugriff nach Anmeldung",
   "module": {
     "hauptprogramm": {
       "datei": "index.html",
       "status": "Enthalten in Testpaket V2.9.27; Firebase-Funktionstest erforderlich",
-      "sha256": "1339f50825bfccd850796d70065637b860c1535c52044ab86e37aad0368e4a3e"
+      "sha256": "f70f24cd0b6f9268acf06b581c189901fcb893156a5c2d4503e5cb06d74cfde2"
     },
     "mitgliederverwaltung": {
       "datei": "mitgliederverwaltung.html",
@@ -25,7 +25,7 @@
     "turnierwirtschaftlichkeit": {
       "datei": "turnierwirtschaftlichkeit.html",
       "status": "Enthalten in Testpaket V2.9.27; Firebase-Funktionstest erforderlich",
-      "sha256": "633ad709d2c669938ff1de48bb1c2f5fc0e5cf3068d09b3c54b034c83bed83c7"
+      "sha256": "90f25d1173dbf2805a5193122f6de825bd2ca22f26540fd4649e4248e16755ea"
     },
     "solo-pyramide": {
       "datei": "solo-pyramide.html",
@@ -41,6 +41,16 @@
       "datei": "live-startlisten.html",
       "status": "Enthalten in Testpaket V2.9.27; Firebase-Funktionstest erforderlich",
       "sha256": "14f1f5ca7320f4372ba922a617a4583f647b5437ff4ca40306aa3ce0a6c9fd66"
+    },
+    "versammlungen": {
+      "datei": "versammlungen-v2954/start.html",
+      "status": "Firebase-Speicherung mit neuen Regeln vom Nutzer bestätigt; geräteübergreifende Prüfung offen",
+      "sha256": "d2b929933b92402e976e00b703043eff1288ed3eb720ab9358ff4f0f56036f43"
+    },
+    "reservierungssystem": {
+      "datei": "verwaltung/reservierungssystem-v2952/start.html",
+      "status": "Smartphone, Tagansicht, Uhrzeitspalte und Buchungsaktionen vom Nutzer bestätigt; kontextabhängiger Zurückbutton noch zu bestätigen",
+      "sha256": "dae17ec24a62977f17e470d23ba69eb24e5b87a66cfc1d7e2abb7723eda02a9f"
     }
   },
   "changes": [
@@ -52,7 +62,11 @@
     "Archiv: Nachtrag alter Turniere, Sortierung älteste zuerst",
     "Archiv: Original-PDF im jeweiligen Browser lokal hinterlegen (noch keine Firebase-Synchronisierung)",
     "Finale: SKMR ohne offizielle Ergebnistabelle nicht mehr als offizielle Platzierung importieren",
-    "Finale: Vorschau und Dateiauswahl beim Löschen zurücksetzen"
+    "Finale: Vorschau und Dateiauswahl beim Löschen zurücksetzen",
+    "Versammlungen und Arbeitseinsätze: Firebase-Speicherung, Jahresdaten und vollständige Sicherung",
+    "Reservierungssystem: Smartphone-Höhe und scrollbarerer Buchungsdialog",
+    "Reservierungssystem: zusätzlicher Zurückbutton nur im Verwaltungs-iframe; keine doppelte Navigation am Whiteboard",
+    "Private Sitzungsarchive, Word-Vorlagen und eingebettete Versammlungsdaten entfernt; Finanzansicht lädt keine lokalen Daten vor Anmeldung."
   ],
   "hinweis": "Dokumente in Firestore appSettings/druckdokumente und druckpdf_*; Regeln FIRESTORE_REGELN_DOKUMENTE_V2.5.3.rules vor Nutzung veröffentlichen. Automatischer PDF-Druckdialog ist browserabhängig und muss auf dem Samsung WM65B geprüft werden. 1 Exemplar kann nicht erzwungen werden.",
   "doppelKo": {
