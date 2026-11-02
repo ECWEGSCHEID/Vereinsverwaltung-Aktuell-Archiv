@@ -10,7 +10,7 @@ function remember(){try{localStorage.setItem(KEY,JSON.stringify({revision:remote
 function snapshotText(backup){return JSON.stringify(backup)}
 async function capture(flush){return window.ecwMeetingBackupTools.capture(flush)}
 async function check(){
- if(busy)return;busy=true;ready=false;buttons();status('Firebase-Verbindung und gespeicherte Daten werden geprüft …');
+ if(busy||window.ecwArchiveMutationPending)return;busy=true;ready=false;buttons();status('Firebase-Verbindung und gespeicherte Daten werden geprüft …');
  try{
   remote=await adapter().read();
   if(remote.backup)window.ECWMeetingImportTest.normalize(remote.backup);
@@ -20,8 +20,9 @@ async function check(){
   else{status('Verbindung erfolgreich. Browser und Firebase enthalten unterschiedliche Stände. „Firebase-Stand laden“ oder „Jetzt in Firebase speichern“ wählen. Bis dahin wird nichts überschrieben.');}
  }catch(e){remote=null;status(friendly(e));}finally{busy=false;buttons()}
 }
-async function saveLocal(automatic=false){
- if(busy||!remote||automatic&&!ready)return;
+async function saveLocal(automatic=false,mutation=false){
+ if(window.ecwArchiveMutationPending&&!mutation)return false;
+ if(busy||!remote||automatic&&!ready)return false;
  if(!automatic&&remote.backup&&!ready&&!confirm('Den aktuellen Browserstand als neuen gemeinsamen Firebase-Stand übernehmen? Ein vorhandener Firebase-Stand wird ersetzt. Lade ihn bei Bedarf vorher zur Prüfung.'))return;
  const active=document.activeElement;
  if(automatic&&dirty&&active&&['INPUT','TEXTAREA'].includes(active.tagName)&&active.onchange&&!active.oninput){status('Eingabe läuft. Nach Verlassen des Feldes wird in Firebase gespeichert.');return}
@@ -29,15 +30,15 @@ async function saveLocal(automatic=false){
  busy=true;buttons();status('Wird in Firebase gespeichert …');
  try{
   const backup=await capture(!automatic),text=snapshotText(backup);
-  if(automatic&&text===baseline){dirty=false;status('Alle gespeicherten Änderungen sind mit Firebase abgeglichen.');return}
+  if(automatic&&text===baseline){dirty=false;status('Alle gespeicherten Änderungen sind mit Firebase abgeglichen.');return true}
   const saved=await adapter().save(backup,remote.revision);
   remote={...saved,backup};baseline=text;ready=true;dirty=editVersion!==started;remember();
-  status('In Firebase gespeichert: '+new Date(saved.savedAt).toLocaleString('de-DE')+'. Automatische Speicherung aktiv.');
- }catch(e){dirty=true;ready=false;status('Nicht in Firebase bestätigt: '+friendly(e));}
+  status('In Firebase gespeichert: '+new Date(saved.savedAt).toLocaleString('de-DE')+'. Automatische Speicherung aktiv.');return true;
+ }catch(e){dirty=true;ready=false;status('Nicht in Firebase bestätigt: '+friendly(e));return false;}
  finally{busy=false;buttons()}
 }
 async function loadRemote(){
- if(busy||!remote?.backup)return;
+ if(busy||window.ecwArchiveMutationPending||!remote?.backup)return;
  if(!confirm('Firebase-Stand in diesen Browser übernehmen? Vorher wird dein aktueller Browserstand vollständig als Sicherungsdatei heruntergeladen.'))return;
  busy=true;ready=false;buttons();status('Firebase-Stand wird erneut geprüft und Browserstand gesichert …');
  try{
@@ -54,16 +55,16 @@ function changed(event){
 document.addEventListener('input',changed);document.addEventListener('change',changed);document.addEventListener('click',event=>{if(!el('meetingCloudPanel').contains(event.target)){clearTimeout(timer);timer=setTimeout(()=>saveLocal(true),1800)}});
 window.addEventListener('online',()=>{status('Verbindung wieder vorhanden. Firebase-Stand wird erneut geprüft …');check()});
 window.addEventListener('offline',()=>{ready=false;status('Offline. Deine Daten werden weiterhin im Browser gespeichert. Nach Wiederverbindung bitte Firebase abgleichen.');});
-window.addEventListener('beforeunload',event=>{if(dirty||busy){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(dirty||busy||window.ecwArchiveMutationPending){event.preventDefault();event.returnValue='';}});
 // Poll local stores as well: asynchronous archive/file writes need no visible input event.
 setInterval(()=>{if(ready&&!busy)saveLocal(true)},15000);
 async function prepareLeave(){
- if(busy){status('Bitte den laufenden Firebase-Vorgang abwarten.');return false}
+ if(busy||window.ecwArchiveMutationPending){status('Bitte den laufenden Speichervorgang abwarten.');return false}
  await capture(true);
  if(ready)await saveLocal(true);
  if(!ready||dirty){if(!confirm('Der aktuelle Stand ist im Browser gespeichert, aber nicht vollständig in Firebase bestätigt. Trotzdem zurück zur Verwaltung?'))return false;}
  dirty=false;return true;
 }
-window.ecwMeetingCloud={check,saveLocal,loadRemote,hasPending:()=>dirty||busy,prepareLeave,allowReload(){ready=false;dirty=false;busy=false;clearTimeout(timer)}};
+window.ecwMeetingCloud={canWrite:()=>ready&&!busy,saveMutation:()=>saveLocal(true,true),check,saveLocal,loadRemote,hasPending:()=>dirty||busy,prepareLeave,allowReload(){ready=false;dirty=false;busy=false;clearTimeout(timer)}};
 buttons();check();
 })();
