@@ -6101,7 +6101,7 @@ function renderTurnierWirtschaftlichkeitAdmin(){
   a.innerHTML='<div class="row" style="align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap">'
     +'<h2 style="margin:0">Turnierwirtschaftlichkeit und Helfer</h2>'
     +'<button type="button" onclick="renderAdminMenuLanding()">← Zurück zur Verwaltung</button></div>'
-    +'<iframe id="twAdminFrame" title="Turnierwirtschaftlichkeit und Helfer EC Wegscheid" src="turnierwirtschaftlichkeit.html?v=2.9.11" '
+    +'<iframe id="twAdminFrame" title="Turnierwirtschaftlichkeit und Helfer EC Wegscheid" src="turnierwirtschaftlichkeit.html?v=2.9.54" '
     +'style="width:100%;height:calc(100vh - 185px);min-height:690px;border:1px solid rgba(255,255,255,.28);border-radius:12px;background:#16080b" '
     +'loading="eager" referrerpolicy="same-origin"></iframe>';
 }
@@ -7343,7 +7343,7 @@ function renderVersammlungenAdmin(){
  const a=document.getElementById('adminMain');if(!a)return;
  document.getElementById("admin").classList.add("meeting-wide");
  a.classList.add("meeting-mode");
- a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Versammlungen und Arbeitseinsätze</h2><button type="button" onclick="ecwReturnFromMeetings()">← Zurück zur Verwaltung</button></div><iframe id="vsAdminFrame" title="Versammlungen und Arbeitseinsätze" src="versammlungen-v2951/start.html?v=2.9.51" style="width:100%;height:100%;min-height:0;flex:1;border:1px solid #ffffff44;border-radius:12px;background:#16080b" loading="eager"></iframe>';
+ a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Versammlungen und Arbeitseinsätze</h2><button type="button" onclick="ecwReturnFromMeetings()">← Zurück zur Verwaltung</button></div><iframe id="vsAdminFrame" title="Versammlungen und Arbeitseinsätze" src="versammlungen-v2954/start.html?v=2.9.54" style="width:100%;height:100%;min-height:0;flex:1;border:1px solid #ffffff44;border-radius:12px;background:#16080b" loading="eager"></iframe>';
 }
 
 window.addEventListener('message',function(event){if(event.data?.type!=='ECW_MEETING_ACCESS_REQUEST')return;const frame=document.getElementById('vsAdminFrame');if(!frame||event.source!==frame.contentWindow)return;let allowed=false;try{allowed=window.ecwCanUseVersammlungen()===true}catch(e){}event.source.postMessage({type:'ECW_MEETING_ACCESS_RESPONSE',allowed},event.origin==='null'?'*':event.origin)});
