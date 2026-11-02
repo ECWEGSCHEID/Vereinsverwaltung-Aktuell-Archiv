@@ -960,6 +960,7 @@ function applyAppPermissionsUI(){
     el.disabled=!ok; el.classList.toggle('app-disabled',!ok); el.setAttribute('aria-disabled',String(!ok));
     if(!ok)el.title='Für diesen Benutzer nicht freigegeben';
   });
+  const vsMenu=document.getElementById('vsAdminMenuRow');if(vsMenu)vsMenu.style.display=hasAppPermission('vs')&&!isWhiteboardUser()?'flex':'none';
   const twMenu=document.getElementById('twAdminMenuRow');if(twMenu)twMenu.style.display=hasAppPermission('tw')?'flex':'none';
   updateHomeAdminButton();
   updateWhiteboardKioskUI();
@@ -2232,6 +2233,8 @@ async function teamPhotosAdd(i,input){
 
 /* ---------- Mitgliederverwaltung als Reiter in der Verwaltung ---------- */
 function unloadMvAdmin(){
+ document.getElementById("admin")?.classList.remove("meeting-wide");
+ document.getElementById("adminMain")?.classList.remove("meeting-mode");
   document.getElementById('admin')?.classList.remove('member-wide');
   const f=document.getElementById('mvAdminFrame');
   if(f){try{f.removeAttribute('srcdoc');f.src='about:blank'}catch(e){}f.remove()}
@@ -3641,6 +3644,109 @@ function renderTpHistory(){
   if(!rows.length){el.innerHTML='<div class="tp-empty">Noch keine Teilnahmen für „'+esc(scope.label)+'“ erfasst.</div>';return}
   el.innerHTML=rows.map(r=>'<div class="tp-history-row"><div class="tp-history-name">'+esc(r.name)+'</div><div class="tp-history-counts">Turniere: '+r.tournaments+' · Meisterschaften: '+r.championships+'<br>Geplante Einsätze '+result.currentYear+': <b>'+r.plannedCurrentYear+'</b><br>Gesamt: <b>'+r.total+'</b></div></div>').join('');
 }
+
+/* ECW Jahresauswertung V2.9.42 TEST – öffentliche Leseschnittstelle: window.ECWAnnualReports */
+const TP_ANNUAL_COLLECTION='tournamentPlannerAnnualReports';
+const tpAnnualSnapshots={};
+function tpAnnualSummary(year){
+ const y=String(year), events=(data.tournamentPlanner||[]).filter(x=>x&&tpEventYear(x)===y);
+ const types={tournaments:[],championships:[],hosted:[],internal:[]},playerMap=new Map();
+ for(const x of events){
+  const t=tpEffectiveNormalizeType(x);
+  if(t==='turnier')types.tournaments.push(x);
+  if(t==='meisterschaft')types.championships.push(x);
+  if(t==='turnier als ausrichter')types.hosted.push(x);
+  if(t==='turnier intern')types.internal.push(x);
+  if(t!=='turnier'&&t!=='meisterschaft')continue;
+  const seen=new Set();
+  for(const raw of (Array.isArray(x.players)?x.players:[])){
+   const name=String(raw||'').trim();if(!name||name.toUpperCase()==='X'||seen.has(name.toLocaleLowerCase('de')))continue;
+   seen.add(name.toLocaleLowerCase('de'));
+   if(!playerMap.has(name))playerMap.set(name,{name,tournaments:0,championships:0});
+   playerMap.get(name)[t==='meisterschaft'?'championships':'tournaments']++;
+  }
+ }
+ const entry=x=>({id:String(x.id||''),name:String(x.name||''),date:tpEventDateStr(x),type:tpEffectiveType(x)});
+ return {schemaVersion:1,year:Number(y),source:'ECW Terminplaner',generatedAt:new Date().toISOString(),
+  totals:{tournaments:types.tournaments.length,championships:types.championships.length,hosted:types.hosted.length,internal:types.internal.length,allEvents:events.length},
+  players:[...playerMap.values()].map(x=>({...x,total:x.tournaments+x.championships})).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,'de')),
+  hostedTournaments:types.hosted.map(entry),eventIds:events.map(x=>String(x.id||''))};
+}
+function tpAnnualKnownYears(){
+ const years=new Set((data.tournamentPlanner||[]).map(tpEventYear).filter(Boolean));
+ Object.keys(tpAnnualSnapshots).forEach(y=>years.add(y));years.add(String(new Date().getFullYear()));
+ return [...years].sort((a,b)=>Number(b)-Number(a));
+}
+function tpAnnualData(year){return tpAnnualSnapshots[String(year)]||tpAnnualSummary(year)}
+function tpAnnualEscape(s){return esc(String(s==null?'':s))}
+function tpAnnualModalClose(){
+ const modal=document.getElementById('tpAnnualModal');
+ if(modal){modal.classList.remove('show');modal.style.display='none';modal.setAttribute('aria-hidden','true');}
+}
+function tpAnnualApplyAccess(){
+ const admin=appPermissions.admin===true&&!isWhiteboardUser();
+ document.querySelectorAll('[data-tp-annual-admin]').forEach(el=>{el.hidden=!admin;el.style.display=admin?'':'none';});
+}
+
+async function tpAnnualOpen(){
+ const modal=document.getElementById('tpAnnualModal');
+ if(modal){modal.style.display='flex';modal.classList.add('show');modal.setAttribute('aria-hidden','false');}
+ tpAnnualApplyAccess();
+ await tpAnnualLoadSnapshots();
+ tpAnnualApplyAccess();
+}
+async function tpAnnualLoadSnapshots(){
+ const status=document.getElementById('tpAnnualStatus');
+ if(firebaseReady&&firestoreDb&&firebaseAuthUser){
+  try{const snap=await firestoreDb.collection(TP_ANNUAL_COLLECTION).get();snap.forEach(doc=>{if(/^\d{4}$/.test(doc.id))tpAnnualSnapshots[doc.id]=doc.data()});}
+  catch(e){if(status)status.textContent='Abgeschlossene Jahre konnten nicht aus Firebase gelesen werden: '+e.message;}
+ }
+ const sel=document.getElementById('tpAnnualYear');if(!sel)return;
+ const old=sel.value||String(new Date().getFullYear());sel.innerHTML=tpAnnualKnownYears().map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+ sel.value=[...sel.options].some(o=>o.value===old)?old:sel.options[0]?.value;
+ tpAnnualRender();
+}
+function tpAnnualRender(){
+ const sel=document.getElementById('tpAnnualYear'),el=document.getElementById('tpAnnualContent');if(!sel||!el)return;
+ tpAnnualApplyAccess();
+ const y=sel.value,report=tpAnnualData(y),locked=!!tpAnnualSnapshots[y],t=report.totals||{};
+ const status=document.getElementById('tpAnnualStatus');
+ if(status)status.textContent=locked?'Gespeicherter Jahresabschluss vom '+(report.closedAt||report.generatedAt||'unbekannt')+' · unveränderlich':'Vorläufige Live-Auswertung – noch kein gespeicherter Jahresabschluss';
+ const btn=document.getElementById('tpAnnualCloseButton');if(btn){btn.disabled=locked||Number(y)>new Date().getFullYear()||(Number(y)===new Date().getFullYear()&&new Date().getMonth()<11)||(Number(y)===new Date().getFullYear()&&new Date().getMonth()===11&&new Date().getDate()<31)||!firebaseReady||!firestoreDb||!firebaseAuthUser||isWhiteboardUser();btn.title='Nur am 31.12. oder für vergangene Jahre, mit Firebase-Anmeldung';}
+ const cards=[['Turniere',t.tournaments],['Meisterschaften',t.championships],['Ausgerichtete Turniere',t.hosted],['Interne Turniere',t.internal],['Veranstaltungen gesamt',t.allEvents]];
+ let html='<div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0">'+cards.map(([n,v])=>'<div class="card" style="flex:1;min-width:135px;text-align:center"><b>'+tpAnnualEscape(n)+'</b><div style="font-size:28px">'+(v||0)+'</div></div>').join('')+'</div>';
+ html+='<h3>Spielereinsätze '+y+'</h3><div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Spieler</th><th>Turniere</th><th>Meisterschaften</th><th>Gesamt</th></tr></thead><tbody>';
+ html+=(report.players||[]).map(p=>'<tr><td>'+tpAnnualEscape(p.name)+'</td><td align="center">'+p.tournaments+'</td><td align="center">'+p.championships+'</td><td align="center">'+p.total+'</td></tr>').join('')||'<tr><td colspan="4">Keine Spielereinsätze vorhanden</td></tr>';
+ html+='</tbody></table></div><h3>Ausgerichtete Turniere</h3>';
+ html+=(report.hostedTournaments||[]).map(x=>'<div>'+tpAnnualEscape(x.date)+' · '+tpAnnualEscape(x.name)+'</div>').join('')||'<div>Keine erfasst</div>';
+ html+='<h3>Jahresvergleich (vorhandene Daten)</h3><div style="overflow:auto"><table style="width:100%"><thead><tr><th>Jahr</th><th>Turniere</th><th>Meisterschaften</th><th>Ausgerichtet</th><th>Spieler</th><th>Status</th></tr></thead><tbody>';
+ html+=tpAnnualKnownYears().map(yr=>{const r=tpAnnualData(yr),a=r.totals||{};return '<tr><td>'+yr+'</td><td align="center">'+(a.tournaments||0)+'</td><td align="center">'+(a.championships||0)+'</td><td align="center">'+(a.hosted||0)+'</td><td align="center">'+(r.players||[]).length+'</td><td>'+(tpAnnualSnapshots[yr]?'Abschluss':'vorläufig')+'</td></tr>'}).join('');
+ html+='</tbody></table></div><p class="small">Gezählt werden erfasste Terminplaner-Einträge (Turnier / Meisterschaft / Turnier als Ausrichter). Eine Turnierteilnahme wird pro Spieler und Termin einmal gezählt. Ein fehlender Eintrag bedeutet nicht zwingend, dass kein Turnier stattgefunden hat. Historische PDF-Archive werden nicht verändert.</p>';
+ el.innerHTML=html;
+}
+async function tpAnnualCloseYear(){
+ if(appPermissions.admin!==true||isWhiteboardUser())return alert('Nur im Admin-Bereich möglich.');
+ const y=document.getElementById('tpAnnualYear')?.value;
+ if(!y||tpAnnualSnapshots[y])return;
+ const now=new Date(),current=now.getFullYear();
+ if(Number(y)>current||(Number(y)===current&&(now.getMonth()<11||(now.getMonth()===11&&now.getDate()<31))))return alert('Der Jahresabschluss ist erst ab dem 31.12. des jeweiligen Jahres möglich.');
+ if(!firebaseReady||!firestoreDb||!firebaseAuthUser||isWhiteboardUser())return alert('Zum Speichern ist ein berechtigter Firebase-Benutzer erforderlich.');
+ if(!confirm('Jahresabschluss '+y+' dauerhaft in Firebase speichern? Vorher alle Termine prüfen.'))return;
+ const report={...tpAnnualSummary(y),closedAt:new Date().toISOString(),closedBy:firebaseAuthUser.uid};
+ try{
+  const ref=firestoreDb.collection(TP_ANNUAL_COLLECTION).doc(y);
+  await firestoreDb.runTransaction(async tx=>{const existing=await tx.get(ref);if(existing.exists)throw new Error('Für '+y+' ist bereits ein Abschluss gespeichert.');tx.set(ref,report)});
+  tpAnnualSnapshots[y]=report;tpAnnualRender();showToast('Jahresabschluss '+y+' gespeichert');
+ }catch(e){alert('Jahresabschluss nicht gespeichert: '+e.message+'\nEventuell fehlen Firestore-Berechtigungen für '+TP_ANNUAL_COLLECTION+'.')}
+}
+function tpAnnualExportJson(){
+ if(appPermissions.admin!==true||isWhiteboardUser())return alert('Nur im Admin-Bereich möglich.');
+ const y=document.getElementById('tpAnnualYear')?.value;if(!y)return;
+ const report=tpAnnualData(y),blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='ECW_Jahresauswertung_'+y+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+window.ECWAnnualReports={collection:TP_ANNUAL_COLLECTION,getYear:tpAnnualData,getStoredYear:y=>tpAnnualSnapshots[String(y)]||null,years:tpAnnualKnownYears,refresh:tpAnnualLoadSnapshots};
+
 function openTpHistory(){renderTpHistory();document.getElementById('tpHistoryModal')?.classList.add('show');}
 function closeTpHistory(){document.getElementById('tpHistoryModal')?.classList.remove('show');}
 function tpEventYear(x){
@@ -4088,57 +4194,135 @@ async function tpChooseWhiteboardPlayer(name){
   tpWbPickerState=null;
 }
 
-function tpPlayers(){const list=(data.tournamentPlannerPlayers&&data.tournamentPlannerPlayers.length)?data.tournamentPlannerPlayers.slice():TP_PLAYER_NAMES.slice();if(!list.includes('X'))list.push('X');return list}
-function tpPlayerOptionsHtml(selected){const opts=['<option value="">– auswählen –</option>'];const list=tpPlayers();if(selected&&!list.includes(selected))list.push(selected);opts.push(list.map(n=>'<option value="'+esc(n)+'" '+(n===selected?'selected':'')+'>'+esc(n)+'</option>').join(''));return opts.join('')}
+// V2.9.45: gemeinsame Namensauflösung und Alias-Verwaltung
+const TP_PLAYER_ALIAS_DOC='playerList';
+function tpPlayerAliases(){return data.tournamentPlannerPlayerAliases||(data.tournamentPlannerPlayerAliases={});}
+function tpResolvePlayerName(name){
+  let n=String(name||'').trim(), seen=new Set(), aliases=tpPlayerAliases();
+  while(aliases[n]&&!seen.has(n)){seen.add(n);n=aliases[n];}
+  return n;
+}
+function tpPlayers(){
+  const list=(data.tournamentPlannerPlayers&&data.tournamentPlannerPlayers.length)?data.tournamentPlannerPlayers.slice():TP_PLAYER_NAMES.slice();
+  const names=[...new Set(list.map(tpResolvePlayerName).filter(Boolean))];
+  if(!names.includes('X'))names.push('X');
+  return names.sort((a,b)=>a.localeCompare(b,'de'));
+}
+function tpPlayerOptionsHtml(selected){
+  const chosen=tpResolvePlayerName(selected), opts=['<option value="">– auswählen –</option>'];
+  const list=tpPlayers();
+  if(chosen&&!list.includes(chosen))list.push(chosen);
+  opts.push(list.map(n=>'<option value="'+esc(n)+'" '+(n===chosen?'selected':'')+'>'+esc(n)+'</option>').join(''));
+  return opts.join('');
+}
+async function tpSaveCentralPlayerList(){
+  if(!save())throw Error('Lokales Speichern fehlgeschlagen');
+  if(!firebaseReady||!firestoreDb||!firebaseAuthUser)throw Error('Keine Firebase-Verbindung. Die Liste wurde nur lokal gespeichert.');
+  const payload={players:tpPlayers().filter(n=>n!=='X'),aliases:{...tpPlayerAliases()},updatedAt:new Date().toISOString()};
+  await fbTimeout(firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC).set(payload),30000,'Spielerliste speichern');
+  return true;
+}
+async function tpLoadCentralPlayerList(){
+  if(!firebaseReady||!firestoreDb)return;
+  try{
+    const doc=await firestoreDb.collection('appSettings').doc(TP_PLAYER_ALIAS_DOC).get();
+    if(doc.exists){
+      const remote=doc.data()||{};
+      if(Array.isArray(remote.players)&&remote.players.length)data.tournamentPlannerPlayers=remote.players;
+      if(remote.aliases&&typeof remote.aliases==='object')data.tournamentPlannerPlayerAliases=remote.aliases;
+      save();
+      renderTpPlayersAdminList();
+    }
+  }catch(e){console.warn('Zentrale Spielerliste nicht geladen:',e);}
+}
 function renderTpPlayersAdminList(){
   const el=document.getElementById('tpPlayersAdminList');if(!el)return;
-  const players=tpPlayers().filter(p=>p!=='X').sort((a,b)=>a.localeCompare(b,'de'));
-  if(!players.length){el.innerHTML='<div class="small">Keine Spieler vorhanden.</div>';return}
-  el.innerHTML=players.map(p=>'<div class="list-item"><div><b>'+esc(p)+'</b></div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button></div></div>').join('');
+  const players=tpPlayers().filter(p=>p!=='X');
+  const aliases=tpPlayerAliases();
+  el.innerHTML=players.length?players.map(p=>{
+    const old=Object.keys(aliases).filter(a=>tpResolvePlayerName(a)===p);
+    return '<div class="list-item"><div><b>'+esc(p)+'</b>'+(old.length?'<div class="small">Frühere Namen: '+esc(old.join(', '))+'</div>':'')+'</div><div class="row"><button onclick="tpRenamePlayer('+jsArg(p)+')">Ändern</button><button onclick="tpAddPlayerAlias('+jsArg(p)+')">Alias hinzufügen</button><button class="danger" onclick="tpRemovePlayer('+jsArg(p)+')">Entfernen</button></div></div>';
+  }).join(''):'<div class="small">Keine Spieler vorhanden.</div>';
 }
-function tpAddPlayer(){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
-  const input=document.getElementById('tpNewPlayer');
-  const name=(input?.value||'').trim();
-  if(!name){showToast('Bitte einen Namen eingeben');return}
-  if(!data.tournamentPlannerPlayers||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
-  if(data.tournamentPlannerPlayers.includes(name)){showToast('Spieler ist bereits in der Liste');return}
+async function tpAddPlayer(){
+  if(isWhiteboardUser()){showToast('Keine Berechtigung');return;}
+  const input=document.getElementById('tpNewPlayer'),name=(input?.value||'').trim();
+  if(!name){showToast('Bitte Namen eingeben');return;}
+  if(tpPlayers().includes(name)||tpPlayerAliases()[name]){showToast('Spieler oder Alias bereits vorhanden');return;}
+  if(!Array.isArray(data.tournamentPlannerPlayers)||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
   data.tournamentPlannerPlayers.push(name);
-  save();
-  if(input)input.value='';
+  try{await tpSaveCentralPlayerList();if(input)input.value='';showToast('Spieler zentral gespeichert');}
+  catch(e){showToast('Achtung: '+e.message,8000);}
   renderTpPlayersAdminList();
-  showToast('Spieler hinzugefügt');
 }
-function tpRenamePlayer(oldName){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
-  const input=prompt('Neuer Name für „'+oldName+'“:',oldName);
-  if(input===null)return;
-  const newName=input.trim();
+async function tpAddPlayerAlias(player){
+  if(isWhiteboardUser())return;
+  const raw=prompt('Früherer Name / Alias für „'+player+'“:');
+  if(raw===null)return;
+  const alias=raw.trim();
+  if(!alias||alias===player)return;
+  if(tpPlayers().includes(alias)&&alias!==player){showToast('Dieser Name gehört bereits zu einem Spieler');return;}
+  const previous=tpPlayerAliases()[alias];
+  if(previous&&tpResolvePlayerName(alias)!==player){showToast('Alias ist bereits einem anderen Spieler zugeordnet');return;}
+  tpPlayerAliases()[alias]=player;
+  try{await tpSaveCentralPlayerList();showToast('Alias gespeichert');}
+  catch(e){showToast('Alias nur lokal gespeichert: '+e.message,8000);}
+  renderTpPlayersAdminList();
+}
+async function tpRenamePlayer(oldName){
+  if(isWhiteboardUser()){showToast('Keine Berechtigung');return;}
+  const raw=prompt('Neuer Name für „'+oldName+'“:',oldName);
+  if(raw===null)return;
+  const newName=raw.trim();
   if(!newName||newName===oldName)return;
-  if(!data.tournamentPlannerPlayers||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
-  if(data.tournamentPlannerPlayers.includes(newName)){showToast('Diesen Namen gibt es bereits in der Liste');return}
+  if(tpPlayers().includes(newName)&&newName!==oldName){showToast('Diesen Namen gibt es bereits');return;}
+  if(!Array.isArray(data.tournamentPlannerPlayers)||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
   data.tournamentPlannerPlayers=data.tournamentPlannerPlayers.map(p=>p===oldName?newName:p);
-  let changed=0;
+  const aliases=tpPlayerAliases();
+  Object.keys(aliases).forEach(k=>{if(aliases[k]===oldName)aliases[k]=newName;});
+  aliases[oldName]=newName;
+  // Nur Veranstaltungen des aktuellen und vorangegangenen Kalenderjahres ändern;
+  // ältere historische Einträge bleiben unverändert.
+  const minYear=new Date().getFullYear()-1;
+  const changed=[];
   (data.tournamentPlanner||[]).forEach(x=>{
-    if(!x)return;
-    let c=false;
-    if(x.reportedBy===oldName){x.reportedBy=newName;c=true}
-    if(Array.isArray(x.players)&&x.players.includes(oldName)){x.players=x.players.map(p=>p===oldName?newName:p);c=true}
-    if(c)changed++;
+    if(!x||!x.date||Number(String(x.date).slice(0,4))<minYear)return;
+    let dirty=false;
+    if(x.reportedBy===oldName){x.reportedBy=newName;dirty=true;}
+    if(Array.isArray(x.players)&&x.players.includes(oldName)){x.players=x.players.map(p=>p===oldName?newName:p);dirty=true;}
+    if(dirty){x.updatedAt=new Date().toISOString();changed.push(x);}
   });
   save();
   renderTpPlayersAdminList();
   renderTournamentPlannerAdminList();
   if(document.getElementById('tournamentPlanner')?.classList.contains('active'))renderTournamentPlanner();
-  if(changed&&firebaseReady&&firestoreDb)syncTournamentPlannerToFirebase();
-  showToast('Spieler geändert'+(changed?' – in '+changed+' Veranstaltung(en) übernommen':''));
+  let errors=[];
+  try{await tpSaveCentralPlayerList();}catch(e){errors.push('Spielerliste: '+e.message);}
+  if(firebaseReady&&firestoreDb){
+    for(const x of changed){
+      try{
+        await fbTimeout(firestoreDb.collection('tournamentPlanner').doc(String(x.id)).update({
+          reportedBy:String(x.reportedBy||''),
+          players:[0,1,2,3].map(i=>String((x.players||[])[i]||'')),
+          updatedAt:x.updatedAt
+        }),30000,'Turnier aktualisieren');
+      }catch(e){errors.push(x.date+': '+(e.message||e));}
+    }
+  }else if(changed.length)errors.push('Termine nicht mit Firebase synchronisiert');
+  if(errors.length){showToast('Umbenennung lokal erfolgt, Firebase prüfen: '+errors.slice(0,2).join('; '),10000);}
+  else showToast('Name und Alias gespeichert; '+changed.length+' Termin(e) aktualisiert');
 }
-function tpRemovePlayer(name){if(isWhiteboardUser()){showToast('Whiteboard: nur Spielerauswahl und Gemeldet von sind bearbeitbar.');return;}
-  if(!confirm('Spieler "'+name+'" wirklich aus der Auswahlliste entfernen?'))return;
-  if(!data.tournamentPlannerPlayers||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
+async function tpRemovePlayer(name){
+  if(isWhiteboardUser())return;
+  if(!confirm('Spieler „'+name+'“ aus der Auswahl entfernen? Bestehende Termine bleiben erhalten.'))return;
+  if(!Array.isArray(data.tournamentPlannerPlayers)||!data.tournamentPlannerPlayers.length)data.tournamentPlannerPlayers=TP_PLAYER_NAMES.slice();
   data.tournamentPlannerPlayers=data.tournamentPlannerPlayers.filter(p=>p!==name);
-  save();
+  try{await tpSaveCentralPlayerList();showToast('Spieler entfernt');}
+  catch(e){showToast('Nur lokal geändert: '+e.message,8000);}
   renderTpPlayersAdminList();
-  showToast('Spieler entfernt');
 }
+// Firebase-Liste nach erfolgreicher Anmeldung nachladen.
+setTimeout(()=>{tpLoadCentralPlayerList();},2500);
 function tpLocationOptionsHtml(){const locs=[...new Set((data.tournamentPlanner||[]).map(x=>x&&x.location).filter(Boolean))].sort();return locs.map(l=>'<option value="'+esc(l)+'">').join('')}
 function renderTournamentPlanner(){
   const el=document.getElementById('tpContent');if(!el)return;
@@ -5353,7 +5537,7 @@ async function saveAllTournamentPlannerChanges(){if(isWhiteboardUser()){showToas
 function tpImportNorm(s){return String(s||'').toLocaleLowerCase('de').replace(/\s+/g,' ').trim()}
 function tpExcelDuplicateKey(x){return [String(x.date||''),tpImportNorm(x.name),String(x.time||'')].join('|')}
 
-const TP_EXCEL_PERSON_NAME_MAP={"Hellauer Mathias":"Hellauer Matthias","Schaubschläger Monika":"Schaubschläger Moni","schaubschläger Monika":"Schaubschläger Moni","Resch Hannes":"Resch Johannes","Fesl Tom":"Fesl Thomas","Hogger Matthias":"Hogger Mathias","Schaubschläger Tom":"Schaubschläger Thomas","Bauer Patrik":"Bauer Patrick","Pilsl Alex":"Pilsl Alexander","Hellauer Manrfrred":"Hellauer Manfred","Stadler Mannemarie":"Stadler Annemarie","GottingerKlaus":"Gottinger Klaus","Gottinger KLaus":"Gottinger Klaus","Haselbeck Wolfh´gang":"Haselbeck Wolfgang","Haselbeeck Wolfgang":"Haselbeck Wolfgang","M ünichshofer Timo":"Münichshofer Timo","Timo Münichshofer":"Münichshofer Timo","Hogger Luka":"Hogger Luca","Hogger Madel":"Hogger Madeleine","Hogger Hias":"Hogger Mathias","Hoheneder Angie":"Hoheneder Angelika","Resch Louis":"Resch Luis","Almmannsberger Adi":"Allmannsberger Adi","Freun Heiner":"Freund Heiner","Ledermüll Michael":"Ledermüller Michael","Stögbauer Luki":"Stögbauer Lukas","Eberhart Christian":"Eberhardt Christian","Breitenfellner Tom":"Breitenfellner Thomas","Simml Tom":"Simml Thomas","Resch Kathi":"Resch Katharina","Schichl Pepi":"Schichl Josef","Schichl Pepe":"Schichl Josef","Cup Stadler Martin":"Stadler Martin","Cup Hellauer Manfred":"Hellauer Manfred","Cup Höglinger Heinz":"Höglinger Heinz","Cup Ledermüller Michael":"Ledermüller Michael","Cup Hellauer Herbert":"Hellauer Herbert","Cup Steininger Fritz":"Steininger Fritz","Cup Hogger Mathias":"Hogger Mathias","Cup Eberhardt Christian":"Eberhardt Christian","VS Steininger Jürgen":"Steininger Jürgen","VS Freund Johannes":"Freund Johannes","VS Höglinger Heinz":"Höglinger Heinz","VS Stadler Martin":"Stadler Martin"};
+const TP_EXCEL_PERSON_NAME_MAP={"Hellauer Mathias":"Hellauer Matthias","Schaubschläger Monika":"Hirz Monika","schaubschläger Monika":"Hirz Monika","Resch Hannes":"Resch Johannes","Fesl Tom":"Fesl Thomas","Hogger Matthias":"Hogger Mathias","Schaubschläger Tom":"Schaubschläger Thomas","Bauer Patrik":"Bauer Patrick","Pilsl Alex":"Pilsl Alexander","Hellauer Manrfrred":"Hellauer Manfred","Stadler Mannemarie":"Stadler Annemarie","GottingerKlaus":"Gottinger Klaus","Gottinger KLaus":"Gottinger Klaus","Haselbeck Wolfh´gang":"Haselbeck Wolfgang","Haselbeeck Wolfgang":"Haselbeck Wolfgang","M ünichshofer Timo":"Münichshofer Timo","Timo Münichshofer":"Münichshofer Timo","Hogger Luka":"Hogger Luca","Hogger Madel":"Hogger Madeleine","Hogger Hias":"Hogger Mathias","Hoheneder Angie":"Hoheneder Angelika","Resch Louis":"Resch Luis","Almmannsberger Adi":"Allmannsberger Adi","Freun Heiner":"Freund Heiner","Ledermüll Michael":"Ledermüller Michael","Stögbauer Luki":"Stögbauer Lukas","Eberhart Christian":"Eberhardt Christian","Breitenfellner Tom":"Breitenfellner Thomas","Simml Tom":"Simml Thomas","Resch Kathi":"Resch Katharina","Schichl Pepi":"Schichl Josef","Schichl Pepe":"Schichl Josef","Cup Stadler Martin":"Stadler Martin","Cup Hellauer Manfred":"Hellauer Manfred","Cup Höglinger Heinz":"Höglinger Heinz","Cup Ledermüller Michael":"Ledermüller Michael","Cup Hellauer Herbert":"Hellauer Herbert","Cup Steininger Fritz":"Steininger Fritz","Cup Hogger Mathias":"Hogger Mathias","Cup Eberhardt Christian":"Eberhardt Christian","VS Steininger Jürgen":"Steininger Jürgen","VS Freund Johannes":"Freund Johannes","VS Höglinger Heinz":"Höglinger Heinz","VS Stadler Martin":"Stadler Martin"};
 
 function tpExcelNormalizePerson(name){
   const s=String(name||'').trim();
@@ -5822,6 +6006,8 @@ function tpAdminSubSection(sub){if(isWhiteboardUser()){showToast('Whiteboard: nu
 }
 
 function renderAdminMenuLanding(){
+ document.getElementById("admin")?.classList.remove("meeting-wide");
+ document.getElementById("adminMain")?.classList.remove("meeting-mode");
   const a=document.getElementById('adminMain');
   if(!a)return;
   try{a.classList.remove('mv-mode')}catch(e){}
@@ -5923,12 +6109,14 @@ function renderTurnierWirtschaftlichkeitAdmin(){
 function adminSection(s){
  if(isWhiteboardUser()){showToast('Bearbeitungsverwaltung für Whiteboard gesperrt.');return;}
  if(s==='password'){openUserPassword();return;}
- const permKey=(s==='zr'?'t':s==='docs'?'sh':s);
- const adminOnly=['u','backup','wb','solo','ic','sysconfig'];
+ const permKey=(s==='zr'?'t':s==='docs'?'sh':s==='players'?'tp':s);
+ const adminOnly=['u','backup','wb','solo','ic','sysconfig','reservadmin'];
  if((adminOnly.includes(s) && appPermissions.admin!==true) || (!adminOnly.includes(s) && !hasAppPermission(permKey))){showToast('Dieser Bereich ist für Sie nicht freigegeben.',4000);return;}
  window.__adminBack=null;
  try{unloadMvAdmin()}catch(e){}
  try{document.getElementById('adminMain').classList.remove('mv-mode')}catch(e){}
+ if(s==='reservadmin'){ecwReservationAdmin();return}
+ if(s==='players'){adminSection('tp');tpAdminSubSection('players');return}
  if(s==='docs'){ecwDocsAdmin();return}
  if(s==='sysconfig'){ECWConfig.open();return}
  if(s==='backup'){renderBackupAdmin();return}
@@ -5936,6 +6124,7 @@ function adminSection(s){
  if(s==='wb'){renderWhiteboardPermissionsAdmin();return}
  if(s==='solo'){openSoloPyramideAdmin();return}
  if(s==='ic'){renderInternalCupAdmin();return}
+ if(s==='vs'){renderVersammlungenAdmin();return}
  if(s==='tw'){renderTurnierWirtschaftlichkeitAdmin();return}
  if(s==='mv'){renderMemberAdmin();return}
  if(s==='ov'){renderOverviewAdmin();return}
@@ -7105,3 +7294,63 @@ setTimeout(()=>{
 
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();},250));
 else setTimeout(()=>{window.__publicLoadPromise=autoLoadPublicFirebaseDataV1245();},250);
+
+
+/* V2.9.43 – Reservierungssystem-Verwaltung: Einbettung der bestehenden App.
+   Kein direkter Firebase-Zugriff auf das fremde Reservierungssystem; Abgleich ist bewusst nur lesend. */
+function ecwReservationAdmin(){
+ const a=document.getElementById('adminMain');if(!a)return;
+ if(appPermissions.admin!==true){showToast('Nur für Administratoren.');return;}
+ a.innerHTML='<h2>Reservierungssystem</h2>'+
+ '<div class="card"><p>Das Reservierungssystem wird aus dem Verwaltungsordner geladen. Melde dich dort mit deinen bisherigen Zugangsdaten an und öffne den Admin-Bereich. Die Anmeldung bleibt eigenständig.</p>'+ 
+ '<div class="row" style="gap:8px;flex-wrap:wrap"><button type="button" onclick="ecwReservationReload()">Reservierung neu laden</button>'+
+ '<a href="https://ecwegscheid.github.io/Reservierungssystem/" target="_blank" rel="noopener noreferrer" style="padding:10px;color:#fff">In neuem Tab öffnen ↗</a></div>'+
+ '<iframe id="ecwReservationAdminFrame" title="Reservierungssystem" src="verwaltung/reservierungssystem-v2952/start.html?v=2.9.52" loading="eager" style="display:block;width:100%;height:640px;min-height:50vh;border:1px solid #777;border-radius:10px;background:#fff;margin-top:12px"></iframe>'+
+ '<p class="small">Die lokale Kopie funktioniert beim Öffnen über einen Webserver zuverlässig; Firebase benötigt eine Internetverbindung. Für den produktiven Betrieb die enthaltenen Dateien mit auf GitHub Pages hochladen.</p></div>'+ 
+ '<div class="card"><h3>Mitglieder mit Spielerliste vergleichen (Test)</h3>'+
+ '<p>Füge die Namen aus dem Reservierungssystem ein – ein Name pro Zeile, oder importiere eine CSV-/TXT-Datei. Der Vergleich verwendet die vorhandene Terminplaner-Spielerliste. Er verändert keine Daten.</p>'+
+ '<input type="file" id="ecwReservationNamesFile" accept=".csv,.txt,text/plain,text/csv" onchange="ecwReservationImportNames(this)">'+
+ '<textarea id="ecwReservationNames" rows="6" style="width:100%;margin:10px 0" placeholder="Vorname Nachname oder Nachname Vorname – ein Name pro Zeile"></textarea>'+
+ '<button type="button" class="primary" onclick="ecwReservationCompare()">Namen vergleichen</button>'+
+ '<div id="ecwReservationCompareResult" style="margin-top:14px"></div>'+
+ '<p class="small">Hinweis: Ein automatischer Firebase-Abgleich ist erst möglich, wenn Datenstruktur und Berechtigungen des Reservierungssystems geprüft sind. Keine automatische Zusammenführung anhand ähnlicher Namen.</p></div>';
+}
+function ecwReservationReload(){const f=document.getElementById('ecwReservationAdminFrame');if(f)f.src='verwaltung/reservierungssystem-v2952/start.html?v=2.9.52';}
+function ecwReservationImportNames(el){
+ const f=el?.files?.[0];if(!f)return;
+ if(f.size>1024*1024){showToast('Datei zu groß (max. 1 MB)');return;}
+ const reader=new FileReader();reader.onload=()=>{const t=document.getElementById('ecwReservationNames');if(t)t.value=String(reader.result||'')};reader.readAsText(f);
+}
+function ecwReservationCompare(){
+ const input=document.getElementById('ecwReservationNames');const target=document.getElementById('ecwReservationCompareResult');if(!input||!target)return;
+ const normalize=x=>String(x||'').normalize('NFKC').toLocaleLowerCase('de').replace(/[;,]/g,' ').replace(/\s+/g,' ').trim();
+ const list=typeof tpPlayers==='function'?tpPlayers():[];
+ const known=new Map();list.forEach(n=>{if(normalize(n)!=='x')known.set(normalize(n),n)});
+ const lines=input.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ const entries=lines.map(x=>x.includes(';')?x.split(';').filter(Boolean).join(' '):x).filter(Boolean);
+ const found=[],missing=[],seen=new Set();
+ for(const name of entries){const key=normalize(name);if(!key||seen.has(key))continue;seen.add(key);if(known.has(key))found.push(name);else missing.push(name)}
+ const render=arr=>arr.length?'<ul style="max-height:240px;overflow:auto">'+arr.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'<p>Keine</p>';
+ target.innerHTML='<p><b>Verglichen:</b> '+seen.size+' &nbsp; <b>Exakt gefunden:</b> '+found.length+' &nbsp; <b>Nicht gefunden:</b> '+missing.length+'</p>'+
+ '<h4>Nicht in der Spielerliste gefunden</h4>'+render(missing)+'<h4>Gefunden</h4>'+render(found)+
+ '<p class="small">Unterschiedliche Namensreihenfolge, Schreibweisen oder frühere Nachnamen können zu „nicht gefunden“ führen. Bitte manuell prüfen.</p>';
+}
+
+// V2.9.47 – eingebettetes Modul; bestehende Anmeldung und Bereichsrechte gelten weiter.
+window.ecwCanUseVersammlungen=function(){return !!firebaseAuthUser&&!isWhiteboardUser()&&hasAppPermission('vs')};
+function renderVersammlungenAdmin(){
+ if(!window.ecwCanUseVersammlungen()){showToast('Versammlungen und Arbeitseinsätze sind nicht freigegeben.');return}
+ const a=document.getElementById('adminMain');if(!a)return;
+ document.getElementById("admin").classList.add("meeting-wide");
+ a.classList.add("meeting-mode");
+ a.innerHTML='<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">Versammlungen und Arbeitseinsätze</h2><button type="button" onclick="ecwReturnFromMeetings()">← Zurück zur Verwaltung</button></div><iframe id="vsAdminFrame" title="Versammlungen und Arbeitseinsätze" src="versammlungen-v2951/start.html?v=2.9.51" style="width:100%;height:100%;min-height:0;flex:1;border:1px solid #ffffff44;border-radius:12px;background:#16080b" loading="eager"></iframe>';
+}
+
+window.addEventListener('message',function(event){if(event.data?.type!=='ECW_MEETING_ACCESS_REQUEST')return;const frame=document.getElementById('vsAdminFrame');if(!frame||event.source!==frame.contentWindow)return;let allowed=false;try{allowed=window.ecwCanUseVersammlungen()===true}catch(e){}event.source.postMessage({type:'ECW_MEETING_ACCESS_RESPONSE',allowed},event.origin==='null'?'*':event.origin)});
+
+async function ecwReturnFromMeetings(){
+ const frame=document.getElementById('vsAdminFrame');
+ try{if(frame?.contentWindow?.ecwMeetingCloud&&!await frame.contentWindow.ecwMeetingCloud.prepareLeave())return;}
+ catch(e){showToast('Speicherung konnte nicht abgeschlossen werden: '+e.message,6000);return}
+ renderAdminMenuLanding();
+}

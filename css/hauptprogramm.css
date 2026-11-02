@@ -799,3 +799,12 @@ body.tv-preview-open{overflow:hidden!important}
  .view.active>.bottom button{pointer-events:auto!important;min-height:44px!important;box-shadow:0 4px 16px rgba(0,0,0,.6)!important}
  .view.active:has(>.bottom){padding-bottom:75px!important}
 }
+
+/* Bildschirmfuellender Versammlungsbereich */
+#admin.meeting-wide{padding:8px}
+#admin.meeting-wide>.header,#admin.meeting-wide>.member-wide-toolbar{display:none}
+#admin.meeting-wide>.admin-grid{grid-template-columns:minmax(0,1fr);gap:0;margin-top:0;overflow:hidden}
+#admin.meeting-wide>.admin-grid>.admin-side{display:none}
+#admin.meeting-wide .admin-main.meeting-mode{display:flex;flex-direction:column;min-width:0;min-height:0;height:100%;padding:8px;overflow:hidden;box-sizing:border-box}
+#admin.meeting-wide .meeting-mode>iframe{display:block;width:100%;flex:1;min-height:0}
+#admin.meeting-wide .meeting-mode>.row{flex-shrink:0}

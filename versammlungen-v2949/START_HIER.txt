@@ -1,0 +1,8 @@
+Versammlungen V3.3 – Datensicherung
+
+WICHTIG für vorhandene Eingaben: zuerst bisherigen Programmordner kopieren. Dann die neue index.html im BISHERIGEN Ordner ersetzen und assets/datensicherung.js hinzufügen. Mit demselben Browser/Profil und derselben Adresse öffnen. Ein anderer Ordner oder Browser kann einen eigenen leeren Speicher haben.
+
+Oben Gespeicherte Daten exportieren anklicken. Sicherung umfasst die lokal gespeicherten Versammlungseingaben aller vier Bereiche, Jahresstände und Dateien aus dem lokalen Jahresarchiv.
+Eine JSON-Datei wird heruntergeladen. Diese Datei für Übernahme/Integration aufbewahren.
+Dies ist ein Export der eigenständigen Versammlungsversion. Firebase und abweichende Speicherstrukturen einer bereits integrierten Vereinsverwaltung sind nicht enthalten.
+Originaldokumente aus dem Programmordner bleiben im Programm-ZIP; die Sicherung enthält eingegebene Daten und vom Benutzer lokal hinzugefügte Dateien.
