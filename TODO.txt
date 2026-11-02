@@ -1,0 +1,18 @@
+EC Wegscheid Versammlungen – offene Integration
+
+1. Mannschaftssitzung: vollständige Mitgliederliste aus der Vereinsverwaltung anbinden; stabile Mitglieder-IDs und Mehrfachauswahl übernehmen.
+2. Sportlichen Rückblick automatisch für gewählten Zeitraum laden: Anzahl bestrittener Turniere, Meisterschaften/Pokalspiele, Gesamteinsätze, Spieler mit den meisten Einsätzen und Vorjahresvergleich. Quelle und Zeitraum anzeigen; fehlende Daten nicht als 0 ausgeben.
+3. Bestehende Anmeldung und Berechtigungen übernehmen; Sitzungen und Entwürfe in Firebase-Datenbank, Archivdateien in Firebase Storage speichern.
+4. Freigabe/Archivierung und parallele Bearbeitung serverseitig absichern.
+5. Aktuelles Datum und Saison für Mannschaftssitzung 2027 festlegen; historische Zahlen und Mannschaftseinteilungen nicht ungeprüft übernehmen.
+
+Mitgliederliste mit Mehrfachauswahl nur als spätere optionale Erweiterung; aktuell ausschließlich manuelle Namenseingabe.
+
+Arbeitseinsatz
+- Smartphone-Schnelleingabe mit zentraler Firebase-Synchronisierung und bestehender Anmeldung verbinden.
+- Abgeschlossene Arbeitseinsätze samt Datum, Arbeiten, Status und sämtlichen Helfern (gesamt und je Arbeit) in Turnierverwaltung exportieren; Zuordnung und Doppelimportschutz abstimmen.
+- Smartphone-/Desktop-Abgleich und nachträgliche Helferänderungen testen.
+
+Schriftführer Jahresbericht: Funktionen aus der Vereinsverwaltung anbinden; Datenfelder und Auswertungszeitraum gemeinsam festlegen. Bestehende Angaben erst nach Abgleich ersetzen.
+
+Jahreswechsel/Archiv: lokale Jahresstände, Anhänge und PDF-Archive später auf Firebase übertragen und Berechtigungen integrieren. PDF-Gesamtausgabe im Zielbrowser auf Layout und Vollständigkeit prüfen.
