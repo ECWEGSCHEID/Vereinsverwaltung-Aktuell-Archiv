@@ -1,23 +1,37 @@
 (() => {
 'use strict';
-const panel=document.createElement('section');panel.className='panel no-print';panel.innerHTML='<h3>Mobile Punkte</h3><p>Bewusst laden (maximal 50 offene Punkte), Ziel prüfen und übernehmen. Die Übernahme wird erst nach bestätigter Firebase-Speicherung quittiert.</p><button type="button" class="btn">Mobile Punkte laden</button><p role="status" aria-live="polite"></p><div class="mobile-inbox-list"></div>';
-const host=document.querySelector('header')||document.body;host.insertAdjacentElement('afterend',panel);const status=panel.querySelector('p[role]'),list=panel.querySelector('.mobile-inbox-list'),load=panel.querySelector('button');let busy=false;
-function api(){if(window.parent===window||!window.parent.ecwMobileMeetingInbox)throw Error('Bitte aus der angemeldeten Vereinsverwaltung öffnen.');return window.parent.ecwMobileMeetingInbox;}
-load.onclick=async()=>{if(busy)return;busy=true;load.disabled=true;status.textContent='Mobile Punkte werden geladen …';try{const rows=await api().list(window);list.replaceChildren();for(const row of rows){
- const card=document.createElement('div');card.className='item';const title=document.createElement('h4');title.textContent=(row.kind==='board'?'Vorstandssitzung: ':'Arbeitseinsatz: ')+row.title;const desc=document.createElement('p');desc.textContent=row.desc;desc.style.whiteSpace='pre-wrap';card.append(title,desc);
- let target=null;if(row.kind==='work'){target=document.createElement('select');target.setAttribute('aria-label','Offener Arbeitseinsatz');target.add(new Option('Offenen Arbeitseinsatz wählen …',''));for(const e of window.ecwWorkMobile?.targets()||[])target.add(new Option(e.title+(e.date?' · '+e.date:''),e.id));card.append(target);}
- const button=document.createElement('button');button.className='btn red';button.textContent='Übernehmen und in Firebase sichern';card.append(button);list.append(card);
- button.onclick=async()=>{if(busy)return;if(row.kind==='work'&&!target.value){status.textContent='Bitte einen offenen Arbeitseinsatz wählen.';return;}if(!confirm('„'+row.title+'“ in '+(row.kind==='board'?'die aktuelle Vorstandssitzung':target.selectedOptions[0].textContent)+' übernehmen und in Firebase speichern?'))return;
- busy=true;button.disabled=true;load.disabled=true;
+const panel=document.createElement('section');panel.className='panel no-print';panel.innerHTML='<h3>Mobile Punkte</h3><p>Mobile Eingaben sind bereits in Firebase gespeichert und erscheinen hier automatisch. Es ist kein gesondertes Übernehmen nötig.</p><button type="button" class="btn">Anzeige aktualisieren</button><p role="status" aria-live="polite"></p>';
+(document.querySelector('header')||document.body).insertAdjacentElement('afterend',panel);
+const status=panel.querySelector('[role]'),button=panel.querySelector('button');let busy=false,waiting=false,lastRun=0,rerun=false;let locallyApplied=new Set();
+async function apply(rows){const messages=[];while(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){status.textContent='Mobile Punkte sind in Firebase gespeichert. Die Anzeige wird nach Abschluss deiner laufenden Eingabe aktualisiert.';await new Promise(resolve=>document.addEventListener('focusout',()=>setTimeout(resolve,0),{once:true}));}for(const r of rows){try{if(r.entry.kind==='board')window.ecwBoardMobileImport(r.entry,r.identity);else window.ecwWorkMobile.import(r.entry,r.target,r.definition);locallyApplied.add(r.entry.id);}catch(e){messages.push(e.message);}}return messages;}
+async function refresh(){
+ if(busy){rerun=true;return;}
+ if(!window.ecwMeetingCloud?.synchronizeMobile){status.textContent='Die neue Speicherfunktion fehlt. Bitte alle Update-Dateien hochladen und neu laden.';return;}
+ if(window.ecwMeetingCloud.isBusy()){waiting=true;status.textContent='Mobile Punkte werden nach der laufenden Firebase-Prüfung automatisch angezeigt …';return;}
+ waiting=false;busy=true;locallyApplied=new Set();button.disabled=true;lastRun=Date.now();status.textContent='Mobile Punkte werden automatisch abgeglichen …';
  try{
-  if(!window.ecwMeetingCloud?.canWrite?.())throw Error('Bitte zuerst den aktuellen Firebase-Stand laden bzw. die Firebase-Verbindung prüfen. Es wurde kein neuer Punkt eingefügt.');
-  if(row.kind==='board')window.ecwBoardMobileImport(row);else window.ecwWorkMobile.import(row,target.value);
-  if(!window.ecwMeetingCloud?.saveLocal)throw Error('Firebase-Speicherfunktion fehlt. Der Punkt bleibt lokal erhalten.');
-  status.textContent='Punkt lokal übernommen. Gesamter Sitzungsstand wird in Firebase gespeichert …';
-  const saved=await window.ecwMeetingCloud.saveLocal(true);if(saved!==true)throw Error('Firebase hat die Speicherung nicht bestätigt. Der Punkt bleibt lokal und im Eingang erhalten. Zuerst den Firebase-Konflikt/Verbindungsstatus klären.');
-  await api().acknowledge(window,row.id);card.remove();status.textContent='Übernommen und in Firebase bestätigt gespeichert.';
- }catch(e){status.textContent='Nicht vollständig bestätigt: '+e.message+' Bei erneutem Übernehmen verhindert dieselbe Eingangskennung einen doppelten Punkt.';}
- finally{busy=false;button.disabled=false;load.disabled=false;}
- };
- }status.textContent=rows.length?rows.length+' offene mobile Punkte geladen.':'Keine offenen mobilen Punkte.';}catch(e){status.textContent='Laden fehlgeschlagen: '+e.message;}finally{busy=false;load.disabled=false;}};
+  const result=await window.ecwMeetingCloud.synchronizeMobile(()=>{
+   if(window.parent===window||!window.parent.ecwMobileMeetingInbox)throw Error('Bitte aus der angemeldeten Vereinsverwaltung öffnen.');return window.parent.ecwMobileMeetingInbox.synchronize(window);
+  },apply);
+  if(result.ackIds?.length){const ack=await window.parent.ecwMobileMeetingInbox.acknowledge(window,[...locallyApplied]);result.unconfirmed=ack.failed+result.ackIds.filter(id=>!locallyApplied.has(id)).length;}
+  const messages=[result.count?result.count+' mobile Punkte im Firebase-Versammlungsstand bestätigt gespeichert.':(result.blocked?.length?'Mobile Punkte sind gesichert und warten auf einen offenen Zielbereich.':'Keine neuen mobilen Punkte.')];
+  for(const b of result.blocked||[])messages.push(b.reason);
+  for(const m of result.localMessages||[])messages.push(m);
+  if(result.unconfirmed)messages.push('Punkte sind bereits gespeichert. Die Eingangsbestätigung wird beim nächsten Öffnen wiederholt; es entstehen keine Dubletten.');
+  if(result.more)messages.push('Weitere Punkte werden beim nächsten Aktualisieren verarbeitet.');
+  status.textContent=[...new Set(messages)].join('\n');status.style.whiteSpace='pre-line';
+ }catch(e){if(e.code==='mobile/busy'){waiting=true;status.textContent='Firebase läuft noch. Die Anzeige wird danach automatisch aktualisiert.';}else status.textContent='Mobile Punkte bleiben in Firebase erhalten. Die Anzeige konnte noch nicht aktualisiert werden: '+e.message;}
+ finally{busy=false;button.disabled=false;if(rerun){rerun=false;setTimeout(refresh,0);}}
+}
+button.onclick=refresh;
+window.addEventListener('ecw-meetings-idle',()=>{if(waiting&&!busy){waiting=false;refresh();}});
+window.addEventListener('focus',()=>{if(Date.now()-lastRun>60000&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))refresh();});
+try{
+ const parent=window.parent;
+ if(parent!==window&&parent.ecwMobileMeetingInbox?.watch){
+  const stop=parent.ecwMobileMeetingInbox.watch(window,refresh,error=>{status.textContent='Automatische Anzeige derzeit nicht erreichbar: '+error.message;});
+  window.addEventListener('pagehide',stop,{once:true});
+ }
+}catch(error){status.textContent=error.message;}
+refresh();
 })();

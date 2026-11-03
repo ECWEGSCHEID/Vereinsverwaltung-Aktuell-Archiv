@@ -1,116 +1,72 @@
-BEREINIGTE FASSUNG – nur dieses Paket verwenden
+EC Wegscheid – Mobile Punkte automatisch speichern und anzeigen
+Korrekturstand 03.11.2026
 
-Die zuvor im Auslosungscode hinterlegten 69 Spielernamen und die daraus
-abgeleitete Vornamenliste wurden entfernt. Keine Teilnehmerliste wird mit
-Programmdateien oder Anleitungen ausgeliefert.
+INSTALLATION
+1. Alle HTML-/JS-Dateien dieses Pakets in den Hauptordner des bestehenden
+   GitHub-Repositorys hochladen und gleichnamige Dateien ersetzen.
+2. Die übrigen vorhandenen Dateien behalten; keine Unterordner anlegen.
+3. Danach Strg+Umschalt+R. Auf dem Smartphone die Seite ebenfalls neu laden.
+4. Die zuletzt ergänzte vollständige Firestore-Regeldatei bleibt gültig.
+   Für diese Korrektur sind keine weiteren Rechte/Collections notwendig.
 
-In der Auslosung „Spielerliste aus Firebase laden“ verwenden. Dafür muss ein
-freigegebenes Konto angemeldet und die zentrale Spielerliste unter
-appSettings/playerList bereits gespeichert sein. Der vorhandene Leseschutz
-für appSettings/playerList muss in Firebase aktiv bleiben; dieses Dokument
-darf nicht öffentlich lesbar sein. Fehlt die Liste oder die Berechtigung,
-bleibt die manuelle Eingabe möglich. Es gibt keinen Namens-Fallback im Code.
-Die geschützte Liste wird nur auf bewussten Klick gelesen.
+NEUER ABLAUF
+Am Smartphone:
+- Vorstandssitzung oder Arbeitseinsatz öffnen, Titel/Beschreibung eingeben.
+- „Punkt in Firebase speichern“ drücken und Bestätigung abwarten.
+- Der mobile Punkt liegt damit bereits in Firebase.
 
-Für die Moar-Regel gibt es „Spielerinnen kennzeichnen“. Die Kennzeichnung
-wird nur im geöffneten Auslosungsfenster gehalten. Falls die zentrale Liste
-bereits eindeutige female/gender-Merkmale enthält, werden diese übernommen;
-andernfalls vor der Auslosung selbst prüfen und markieren.
+In der Vereinsverwaltung:
+- Versammlungen und Arbeitseinsätze öffnen.
+- Neue mobile Punkte werden automatisch in den aktuellen Firebase-Stand
+  der Sitzung/Arbeitslisten eingefügt und anschließend angezeigt.
+- Ein zusätzlicher Übernahmebutton und eine manuelle Auswahl entfallen.
+- „Anzeige aktualisieren“ sucht nur nach weiteren mobilen Punkten; es muss
+  kein einzelner Punkt mehr übernommen werden.
+- Neue mobile Punkte lösen bei geöffnetem Versammlungsfenster ereignisbasiert
+  einen Abgleich aus. Es gibt kein sekündliches Netzwerk-Polling. Der Listener
+  beobachtet maximal 50 offene Punkte und endet beim Schließen des Fensters.
+  Bei Rückkehr ins Fenster wird frühestens nach einer Minute erneut geprüft,
+  sofern gerade keine Eingabe läuft.
 
-Alle HTML-/JS-Dateien dieses bereinigten Pakets statt der alten Version
-hochladen/ersetzen und vollständig neu laden. Die Testliste liegt bei.
-Die Firebase-Regelergänzung für mobile Punkte bleibt weiterhin erforderlich.
+ZIELZUORDNUNG
+- Vorstandspunkte: Tagesordnung der aktuellen offenen Vorstandssitzung.
+- Arbeitspunkte: aktiver offener Arbeitseinsatz aus dem gemeinsamen
+  Firebase-Stand; ersatzweise der erste offene Einsatz.
+- Gibt es keinen offenen Arbeitseinsatz, entsteht automatisch eine neue
+  offene Liste „Mobile Arbeitspunkte“. Abgeschlossene Einsätze bleiben erhalten.
+- Ist die Vorstandssitzung gesperrt oder noch nicht eingerichtet, bleibt
+  der Punkt sicher in Firebase und wartet auf eine offene Sitzung.
+- Gibt es überhaupt noch keinen gemeinsamen Versammlungsstand in Firebase,
+  diesen einmalig über die bestehende Speicherfunktion anlegen. Mobile
+  Eingaben bleiben bis dahin in Firebase erhalten.
 
-Dieses Update bereinigt seine eigenen Dateien. Bereits früher veröffentlichte
-Dateien sowie die GitHub-Versionshistorie werden dadurch nicht automatisch
-bereinigt. Das bisherige Hauptprogramm wird weiterhin aus dem bestehenden
-Repository geladen und ist nicht Teil dieser Prüfung.
+SCHUTZ VOR ÜBERSCHREIBEN UND DUBLETTEN
+Die vorherige Prüfung „Browserstand muss bereits schreibbereit sein“ wird
+für mobile Punkte nicht mehr verwendet. Stattdessen wird der neueste
+SERVER-Stand gelesen, ausschließlich um die neuen Punkte ergänzt und mit
+Revisionsprüfung gesichert. Bei einer zwischenzeitlichen Änderung wird die
+Ergänzung mit dem neueren Stand wiederholt.
+Erst nach bestätigter Speicherung wird der mobile Eingang quittiert.
+Die Eingangskennung verhindert doppelte Punkte bei Wiederholungen.
+Andere Berichte, Dateien, Archive und Sitzungspunkte werden nicht geändert.
+Abweichende Browserdaten werden nicht ungefragt durch den Serverstand
+ersetzt. Zeigt der Browser noch eine andere Vorstandssitzung, wird sie
+nicht mit Punkten der neuen Sitzung vermischt; die Punkte sind trotzdem
+im richtigen gemeinsamen Firebase-Stand gespeichert.
 
-EC Wegscheid – Mobilzugang und Berichte, Stand 03.11.2026
+ENTHALTEN
+Dieses bereinigte Paket enthält weiterhin die Mobilnavigation, Teilnahme-
+Auswertung unter Sportlicher Rückblick und Jahresbericht sowie das
+Auslosungs-/Cup-/SKMR-/OneDrive-Update. Es enthält keine eingebettete
+Spieler- oder Vornamenliste und keine Archiv-/Sitzungsdateien.
+Die Namen werden weiterhin nur nach Anmeldung aus der zentralen Liste
+oder durch manuelle Eingabe in die laufende Auslosung geladen.
 
-DIESES PAKET IST EIN UPDATE FÜR DAS BESTEHENDE REPOSITORY
-1. Bisherigen Repository-Stand sichern.
-2. ZIP entpacken. Alle HTML- und JavaScript-Dateien direkt in den Hauptordner
-   des bestehenden GitHub-Repositorys hochladen und gleichnamige ersetzen.
-   Keine zusätzlichen Unterordner anlegen. Bestehende übrige Dateien behalten.
-   Die Textanleitungen und Testliste müssen nicht auf GitHub hochgeladen werden.
-   MSAL-LICENSE.txt für die mitgelieferte Microsoft-Bibliothek beibehalten.
-3. Die Regel aus FIREBASE_REGELERGAENZUNG.txt in die bestehenden Firestore-Regeln
-   innerhalb von match /databases/{database}/documents einfügen und veröffentlichen.
-   Die bisherigen Regeln nicht durch den Ausschnitt ersetzen.
-4. Browser mit Strg+Umschalt+R neu laden. Am Smartphone die Seite neu laden;
-   bei weiter alter Ansicht zunächst Browser-Cache für die Seite aktualisieren.
-5. Tests in TESTLISTE_Mobilzugang_und_Berichte.md durchgehen.
-
-MOBILZUGANG
-Erste Ebene:
-- Turnierverwaltung
-- Turnier / Termin anlegen
-- Vorstandssitzung → Tagesordnungspunkt hinzufügen
-- Arbeitseinsatz → Punkt hinzufügen
-- Weitere Funktionen
-Zweite Ebene unter Weitere Funktionen:
-- Vereinsnachrichten
-- Ziel Jahresmeisterschaft
-- Interne Cup (öffnet die vorhandene Cupauswertung)
-Die jeweiligen Berechtigungen der Zielmodule bleiben maßgeblich.
-Für die neuen mobilen Punkte braucht das Konto admin=true oder vs=true.
-
-MOBILE PUNKTE
-Die Smartphone-Eingabe schreibt einen neuen Punkt in den gemeinsamen
-Firebase-Eingang versammlungenMobile. Sie verändert keinen kompletten
-Sitzungsstand und wird nicht sofort einem beliebigen Arbeitseinsatz zugeordnet.
-In Versammlungen und Arbeitseinsätze:
-- Aktuellen gemeinsamen Firebase-Stand laden/abgleichen.
-- „Mobile Punkte laden“ wählen (höchstens 50 offene Punkte pro Abruf).
-- Für Arbeitspunkte einen vorhandenen offenen Arbeitseinsatz auswählen.
-  Fehlt einer, zunächst einen Arbeitseinsatz anlegen und erneut laden.
-- Übernahme bestätigen. Vorstandspunkte gehen in die aktuelle ungesperrte
-  Vorstandssitzung unter Tagesordnung; Arbeitspunkte in den gewählten Einsatz.
-- Die Übernahme speichert den geänderten Versammlungsstand in Firebase.
-  Erst nach Bestätigung wird der Eingangspunkt als übernommen quittiert.
-- Bei Fehlern oder Konflikten bleibt der Eingangspunkt offen. Ein bereits
-  lokal übernommener Punkt wird anhand seiner Eingangskennung nicht dupliziert.
-- Es gibt keine zusätzliche dauernde Firebase-Abfrage; der Eingang wird
-  nur bewusst per Button geladen. Abgeschlossene Einsätze und gesperrte
-  Vorstandssitzungen nehmen keine neuen Punkte an.
-
-TEILNAHMEAUSWERTUNG
-Mannschaftssitzung:
-- Die Übernahme liegt jetzt unter 02 · Sportlicher Rückblick.
-- Vorhandene automatisch übernommene Punkte werden beim Laden eines
-  ungesperrten Entwurfs einmalig dorthin verschoben und von den genannten
-  Erläuterungstexten bereinigt. Archivierte Sitzungen bleiben unverändert.
-Bericht Schriftführer:
-- Unter Jahresbericht gibt es „Turnier- und Meisterschaftsteilnahmen übernehmen“.
-- Vereinsjahr wählen, Daten laden, Einträge prüfen/abwählen und bestätigen.
-- Es wird ein bearbeitbarer Punkt ausschließlich unter Jahresbericht angelegt.
-  Vorwort, Ergebnisse und Abschlussworte bleiben erhalten.
-- Bei erneuter Übernahme desselben Jahres wird nach Bestätigung nur der
-  betreffende automatisch übernommene Punkt ersetzt.
-- Der Hinweis zu fehlenden Spielernamen und der Absatz „Grundlage …“ sind
-  nicht mehr im Berichtstext enthalten. Prüfinformationen bleiben in der
-  Eingabemaske sichtbar.
-- Wie bisher nach der Teilnahmeübernahme „In Firebase speichern“ wählen.
-- Ein Terminplanereintrag zählt als Mannschaftsteilnahme. Vor der Übernahme
-  prüfen, ob die als vergangen erfassten Termine tatsächlich bestritten wurden.
-
-BISHER VORGEMERKTES AUSLOSUNGSUPDATE IST ENTHALTEN
-- Bis zu 16 Mannschaften, Cupübernahme, Namensanzeige, SKMR und OneDrive.
-- Für OneDrive gilt weiterhin die einmalige Einrichtung gemäß
-  ONEDRIVE_EINRICHTUNG.txt; eine echte Microsoft-App-ID ist erforderlich.
-- Das alte separate Mannschaftssitzung-Update nicht danach erneut hochladen,
-  da es diese Änderungen wieder durch den vorherigen Stand ersetzen würde.
-
-PRÜFSTAND UND GRENZEN
-JavaScript-Syntax und Script-Verweise geprüft. Die fachliche Logik wurde mit
-Testdaten geprüft: Abschnitt 02, bereinigter Berichtstext, Jahresbericht-
-Übernahme, Erhalt manueller Texte, Konflikte, lokale Speicherfehler, mobile
-Dubletten, Archiv-/Abschlussschutz und wiederholte Smartphone-Speicherung
-nach unklarer Netzwerkantwort.
-Der vollständige Browser-/Smartphone-Test und die Prüfung der neuen Regeln
-gegen dein echtes Firebase-Projekt stehen aus. Die Testliste ist dafür offen.
-Die neue Regel ist ein begrenzter Zusatz, keine vollständige Ersatz-Regeldatei.
-Das Paket enthält keine Sitzungs-/Archivdateien oder eingebettete neue
-Mitgliederdaten. Die vorhandenen Programm-Bilder und übrigen Module werden
-weiter aus dem bestehenden Repository geladen.
+PRÜFSTAND
+Geprüft mit simulierten Serverständen: aktuelle Serverfassung statt altem
+Browserstand, parallele Änderungen, Revisionskonflikt und Wiederholung,
+Erhalt vorhandener Themen/Archive, doppelte Eingangskennungen, gesperrte
+Sitzungen, abgeschlossene Einsätze, neue Sammelliste, Speicher- und
+Quittierungsfehler. JavaScript-Syntax und Einbindung geprüft.
+Der Test in deinem laufenden Firebase-Projekt und auf dem Smartphone
+steht noch aus. Die Testliste ist dem Paket beigefügt.

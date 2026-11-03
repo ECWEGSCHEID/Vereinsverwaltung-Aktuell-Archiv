@@ -124,7 +124,8 @@ const gvA=document.getElementById('gvArchive');gvA.textContent='Archive werden n
 
 window.ecwBoardArchiveApi={state(){return {archived:data.archived,hidden:data.archiveEntryDeleted===true,date:data.meeting?.date||''}},hide(value){data.archiveEntryDeleted=value;save()}};
 
-window.ecwBoardMobileImport=function(entry){
+window.ecwBoardMobileImport=function(entry,expectedIdentity){
+ if(expectedIdentity){const m=data.meeting||{};if(JSON.stringify([m.date||'',m.time||'',m.place||'',m.placeOther||''])!==expectedIdentity)throw Error('Punkt ist bereits in Firebase gespeichert; dieser Browser zeigt noch eine andere Sitzung.');}
  if(data.items.some(x=>x.mobileId===entry.id))return false;
  if(data.archived)throw Error('Die Vorstandssitzung ist gesperrt.');
  const backup=JSON.parse(JSON.stringify(data));data.items.push({id:Math.max(Date.now(),...data.items.map(x=>Number(x.id)||0))+1,title:entry.title,desc:entry.desc,section:'agenda',status:'Offen',mobileId:entry.id});

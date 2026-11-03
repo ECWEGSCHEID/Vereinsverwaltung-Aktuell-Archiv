@@ -9,10 +9,11 @@ function render(){const e=current();get('workSelect').innerHTML=state.events.map
 
 window.ecwWorkMobile={
  targets(){return state.events.filter(e=>!e.done).map(e=>({id:e.id,title:e.title,date:e.date}));},
- import(entry,target){
+ import(entry,target,definition){
   if(state.events.some(e=>e.items.some(x=>x.mobileId===entry.id)))return false;
-  const e=state.events.find(e=>e.id===target);if(!e||e.done)throw Error('Bitte einen offenen Arbeitseinsatz wählen.');
-  const backup=JSON.parse(JSON.stringify(state));e.items.push({title:entry.title,desc:entry.desc,status:'Offen',helpers:[],mobileId:entry.id});
+  let e=state.events.find(e=>e.id===target);const backupBefore=JSON.parse(JSON.stringify(state));if(!e&&definition&&definition.id===target&&!definition.done){e=JSON.parse(JSON.stringify(definition));e.items=[];state.events.push(e);}
+  if(!e||e.done)throw Error('Bitte einen offenen Arbeitseinsatz wählen.');
+  const backup=backupBefore;state.active=e.id;e.items.push({title:entry.title,desc:entry.desc,status:'Offen',helpers:[],mobileId:entry.id});
   try{localStorage.setItem(key,JSON.stringify(state));}catch(error){state=backup;throw error;}render();return true;
  }
 };
