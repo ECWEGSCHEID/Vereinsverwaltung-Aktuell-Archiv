@@ -1,0 +1,58 @@
+EC Wegscheid – Turnierauslosung: Cupübernahme und SKMR
+
+INSTALLATION
+1. ZIP entpacken.
+2. Die sechs Programmdateien direkt in den Hauptordner des bestehenden
+   GitHub-Repositorys hochladen; turnierauswertung.html ersetzen.
+   Keine Unterordner anlegen. Die bisherigen Dateien des Repositorys behalten.
+   ANLEITUNG.txt muss nicht hochgeladen werden.
+3. Nach Veröffentlichung die Seite mit Strg+Umschalt+R neu laden.
+
+CUPÜBERNAHME
+- Als Administrator anmelden.
+- In der Cupauswertung zuerst ein Turnier mit der gewünschten Gruppen- und
+  Mannschaftsanzahl anlegen und speichern.
+- Im Auslosungsmodus unter „4. Auslosung übernehmen“ das Turnier auswählen.
+- Auslosung durchführen. Mannschaftsnamen bei Bedarf anpassen.
+- „Übernahme prüfen“ zeigt die Zuordnung zu den vorhandenen Mannschaftsplätzen.
+- Erst „In Cup / Firebase übernehmen“ schreibt die Aufstellung in Firebase.
+- Gespeichert werden Mannschaftsnamen, Spielernamen, Mannschaftsführer und Moar.
+  Mannschaftskennungen, Regeln und vorhandener Spielplan bleiben erhalten.
+- Bereits begonnene Turniere oder zwischenzeitlich geänderte Daten werden
+  nicht überschrieben. Bei Firebase-Fehlern wird kein Erfolg gemeldet.
+- Die Turnierliste verwendet die bereits geladenen Cupdaten. Ihr Aktualisieren
+  löst keinen zusätzlichen Firebase-Lesezugriff aus.
+
+SKMR
+- Eine unbespielte vorhandene .skmr-Datei mit passender Gruppen- und
+  Mannschaftsanzahl auswählen. Das bestätigte Format ist XML mit
+  Spieler/Spieler/FirstName, LastName und LicenseNumber.
+- Die Zuordnung erfolgt je Gruppe nach aufsteigender Startnummer.
+- Die Dateigruppen werden in ihrer Dateireihenfolge den ausgelosten Gruppen
+  A, B, C und D zugeordnet. Die Vorschau vor dem Speichern prüfen.
+- „Vor- und Nachnamen für SKMR prüfen“ aufklappen. Die Vorgabe nimmt an,
+  dass die Anmeldeliste Nachname Vorname enthält. Mehrteilige Namen und
+  abweichende Reihenfolgen vor dem Export korrigieren.
+- SKMR-Vorschau öffnen, anschließend „Befüllte SKMR speichern“.
+- Unterstützte Browser öffnen einen Speichern-Dialog. Hier kann auch die
+  ursprüngliche Datei zum Ersetzen gewählt werden. Andere Browser laden
+  eine neue Datei mit dem Zusatz _Auslosung herunter.
+- Geändert werden ausschließlich Mannschafts- und Spielerfelder.
+  Spielplan, Startnummern, Einstellungen und sonstige Felder bleiben erhalten.
+  Lizenznummern der neu zugeordneten Spieler bleiben leer.
+- Optional lassen sich ausdrücklich nur Mannschaftsnamen ändern.
+- Dateien mit vorhandenen Wertungen werden abgewiesen. Bitte eine leere
+  Turniervorlage verwenden, damit alte Ergebnisse nicht neuen Teams zugeordnet
+  werden.
+- Die ausgewählte SKMR-Datei wird lokal verarbeitet und nicht hochgeladen.
+
+PRÜFUNG
+- Cupzuordnung, Spielplanerhalt, Spielernamen, Konfliktprüfung, Rollenprüfung
+  und native/zentral eingebettete Firebase-Transaktionen mit Testdaten geprüft.
+- SKMR-Logik gegen das Format der bereitgestellten Beispieldatei geprüft:
+  Spielernamen, Sonderzeichen, leere Spielerlisten, unveränderte übrige Felder,
+  falsche Mannschaftsanzahl und Schutz vor Dateien mit vorhandenen Ergebnissen.
+- JavaScript-Syntax und Einbindung geprüft. Grenze von 16 Mannschaften geprüft.
+- Noch kein Oberflächentest im laufenden Browser oder Schreibtest gegen das
+  echte Firebase-Konto durchgeführt.
+- Das Paket enthält keine SKMR-Beispieldatei und keine neuen Archivdateien.
