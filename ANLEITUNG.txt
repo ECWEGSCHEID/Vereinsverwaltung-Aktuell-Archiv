@@ -1,3 +1,22 @@
+UPDATE 2 – Cupübernahme korrigiert
+
+- Firebase-Felder werden unabhängig von ihrer Reihenfolge verglichen.
+- Die Gruppen werden auch bei ungleichen Größen passend zum Cup verteilt.
+- Bereits begonnene oder abgeschlossene Turniere fehlen in der Auswahlliste.
+- Auswahl Mannschaftsnummer oder ausgeloste Namen mit „und“; gilt für
+  Liveanzeige, Druck und die Übernahme in Cup und SKMR.
+- Cupauswahl vor der Auslosung stellt Gruppen- und Mannschaftsanzahl ein.
+- Der originale rote Carbon-Hintergrund wird wie in der Turnierauswertung
+  verwendet. Dunkle Überlagerungen der Auslosung wurden entfernt.
+
+Alle sechs Programmdateien erneut in den GitHub-Hauptordner hochladen
+und ersetzen. Danach Strg+Umschalt+R. Die neue Einbindung verwendet
+Versionskennung cup-skmr-2.
+
+Die Cupübernahme erfordert weiterhin eine Administrator-Anmeldung.
+Die Korrektur wurde mit simulierten Firebase-Transaktionen geprüft;
+ein Schreibtest gegen das echte Firebase-Konto wurde nicht durchgeführt.
+
 EC Wegscheid – Turnierauslosung: Cupübernahme und SKMR
 
 INSTALLATION

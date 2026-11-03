@@ -4,12 +4,15 @@ const $=id=>document.getElementById(id);
 const api=()=>window.parent!==window?window.parent.ecwDrawCupBridge:null;
 let preview=null,skmr=null,filename='',fileHandle=null,busy=false;
 function status(message){$('transfer-status').textContent=message;}
+window.ecwDrawLabel=team=>$('transfer-name-mode')?.value==='names'&&team.members?.length?team.members.join(' und '):team.name;
+window.ecwDrawLabelHtml=team=>window.ecwDrawLabel(team).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function draw(){
  if(!Array.isArray(savedDrawResultTeams)||!savedDrawResultTeams.length)throw Error('Bitte zuerst die Auslosung abschließen.');
  const result=JSON.parse(JSON.stringify(savedDrawResultTeams));
  const inputs=$('transfer-teams').querySelectorAll('input[data-team-name]');
  result.forEach((t,i)=>{
   if(inputs[i])t.name=inputs[i].value.trim();
+  if($('transfer-name-mode').value==='names')t.name=window.ecwDrawLabel(t);
   t.skmrPlayers=t.members.map((n,j)=>({firstName:$(`transfer-first-${i}-${j}`)?.value||'',lastName:$(`transfer-last-${i}-${j}`)?.value||''}));
  });
  const names=result.map(t=>t.name.toLocaleLowerCase('de'));
@@ -19,12 +22,12 @@ function draw(){
 function invalidate(){preview=null;$('transfer-cup-save').disabled=true;$('transfer-preview').replaceChildren();}
 function renderMapping(rows){
  const table=document.createElement('table');table.style.cssText='width:100%;border-collapse:collapse';
- rows.forEach(r=>{const tr=table.insertRow();[`${r.group} · ${r.slot}`,r.old+' → '+r.name,(r.players||[]).join(', ')].forEach(v=>{const td=tr.insertCell();td.textContent=v;td.style.cssText='padding:8px;border-bottom:1px solid #cbd5e1;vertical-align:top';});});
+ rows.forEach(r=>{const tr=table.insertRow();[`${r.group} · ${r.slot}`,r.old+' → '+r.name,(r.players||[]).join(' und ')].forEach(v=>{const td=tr.insertCell();td.textContent=v;td.style.cssText='padding:8px;border-bottom:1px solid #cbd5e1;vertical-align:top';});});
  $('transfer-preview').replaceChildren(table);
 }
 function refresh(){
  invalidate();const select=$('transfer-cup'),old=select.value;select.replaceChildren(new Option('Vorhandenes Cupturnier auswählen …',''));
- try{const list=api()?.list()||[];list.forEach(t=>{const o=new Option(`${t.name} · ${t.teams} Mannschaften / ${t.groups} Gruppen${t.started?' · bereits begonnen':''}`,t.id);o.disabled=t.started;select.add(o);});select.value=old;if(!list.length)status('Noch kein Cupturnier verfügbar. Bitte zuerst in der Cupauswertung anlegen.');}
+ try{const list=(api()?.list()||[]).filter(t=>!t.started);list.forEach(t=>{const o=new Option(`${t.name} · ${t.teams} Mannschaften / ${t.groups} Gruppen`,t.id);o.disabled=t.started;select.add(o);});select.value=old;if(!list.length)status('Noch kein Cupturnier verfügbar. Bitte zuerst in der Cupauswertung anlegen.');}
  catch(e){status(e.message);}
 }
 function sync(){
@@ -33,8 +36,8 @@ function sync(){
  savedDrawResultTeams.forEach((t,i)=>{
   const label=document.createElement('label');label.style.cssText='display:block;margin:10px 0';
   const span=document.createElement('span');span.textContent=`Gruppe ${t.group} · Mannschaft ${i+1}: `;
-  const input=document.createElement('input');input.dataset.teamName='1';input.value=t.name;input.maxLength=160;input.style.cssText='max-width:100%;width:280px';input.addEventListener('input',invalidate);
-  const desc=document.createElement('small');desc.textContent=t.members.join(', ');desc.style.display='block';
+  const input=document.createElement('input');input.dataset.teamName='1';input.value=window.ecwDrawLabel(t);input.readOnly=$('transfer-name-mode').value==='names';input.maxLength=1000;input.style.cssText='max-width:100%;width:280px';input.addEventListener('input',invalidate);
+  const desc=document.createElement('small');desc.textContent=t.members.join(' und ');desc.style.display='block';
   label.append(span,input,desc);$('transfer-teams').append(label);
   const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Vor- und Nachnamen für SKMR prüfen';details.append(summary);
   t.members.forEach((n,j)=>{
@@ -51,6 +54,9 @@ function sync(){
 const panel=document.createElement('section');panel.className='section';panel.id='draw-transfer-panel';panel.style.cssText='background:white;color:#172033;padding:20px;margin:20px auto;max-width:1100px;border-radius:12px;box-sizing:border-box';
 panel.innerHTML=`<h2>4. Auslosung übernehmen</h2>
 <p>Mannschaften und Spieler in ein bereits angelegtes Cupturnier übernehmen oder eine vorhandene SKMR-Vorlage befüllen.</p>
+<label for="transfer-name-mode">Anzeige / Mannschaftsbezeichnung:</label>
+<select id="transfer-name-mode" style="padding:10px;max-width:100%"><option value="number">Mannschaft 1, Mannschaft 2, …</option><option value="names">Gezogene Namen mit „und“</option></select>
+<p>Die Auswahl gilt für die Auslosungsanzeige, die Druckliste sowie die Übernahme in Cup und SKMR.</p>
 <div id="transfer-teams"></div>
 <h3>Cupauswertung</h3><select id="transfer-cup" style="max-width:100%;padding:10px"></select>
 <button type="button" id="transfer-refresh" class="btn btn-secondary">Turnierliste aktualisieren</button>
@@ -65,7 +71,17 @@ panel.innerHTML=`<h2>4. Auslosung übernehmen</h2>
 <button type="button" id="transfer-skmr-save" class="btn btn-success">Befüllte SKMR speichern</button>
 <p id="transfer-status" role="status" aria-live="polite"></p><div id="transfer-preview" style="overflow-x:auto"></div>`;
 (document.querySelector('.container')||document.body).append(panel);
-$('transfer-refresh').onclick=refresh;$('transfer-cup').onchange=invalidate;
+$('transfer-refresh').onclick=refresh;
+$('transfer-name-mode').onchange=()=>{sync();if(savedDrawResultTeams?.length)renderOverlayGroups(savedDrawResultTeams,null,null,null,null);};
+$('transfer-cup').onchange=()=>{
+ invalidate();
+ const t=api()?.list().find(t=>t.id===$('transfer-cup').value);
+ if(t&&!savedDrawResultTeams?.length){
+  $('num-teams').value=String(t.teams);$('num-groups').value=String(t.groups);
+  if(typeof handleGroupCountChange==='function')handleGroupCountChange();
+  status('Gruppen- und Mannschaftsanzahl aus dem ausgewählten Cupturnier eingestellt.');
+ }
+};
 $('transfer-cup-preview').onclick=()=>{try{if(!api())throw Error('Bitte die Auslosung aus der Cupauswertung öffnen.');const data=draw(),id=$('transfer-cup').value,p=api().preview(id,data);preview={...p,id,draw:data};renderMapping(p.assignment);$('transfer-cup-save').disabled=false;status('Vorschau geprüft. Nur das ausgewählte Turnier wird geändert. Speichern erfolgt erst mit „In Cup / Firebase übernehmen“.');}catch(e){invalidate();status(e.message);}};
 $('transfer-cup-save').onclick=async()=>{
  if(busy||!preview)return;
