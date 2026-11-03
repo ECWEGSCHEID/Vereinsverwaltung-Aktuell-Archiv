@@ -40,7 +40,7 @@ function printProtocol(){
  const extra=data.board.filter(x=>x.present&&x.extra).map(x=>x.name).join(', ')||'—';
  const leader=data.board.find(x=>x.leader&&x.present);
  const rows=[['Anwesend vom Vorstand:',present],['Anwesend Mitglieder:',extra],['Abwesend:',absent],['Versammlungsführer:',leader?leader.name:'—'],['Versammlungsort:',place],['Sitzungsbeginn:',m.time+' Uhr'],['Sitzungsende:',m.end?m.end+' Uhr':'________ Uhr']];
- const headings={review:'Erledigte Themen seit letzter Sitzung',agenda:'Aktuelle Themen',oldopen:'Offene Punkte aus früheren Sitzungen',next:'Themen für nächste Sitzung'};
+ const headings={review:'Erledigte Themen seit letzter Sitzung',agenda:'Sportlicher Rückblick',oldopen:'Offene Punkte aus früheren Sitzungen',next:'Themen für nächste Sitzung'};
  const sections=['review','agenda'].map(sec=>{
  const entries=data.items.filter(x=>x.section===sec);
  return `<div class="p-section">${headings[sec]}</div>`+(entries.length?entries.map(x=>`<div class="p-item"><div class="p-item-title">${esc(x.title)} <span class="p-status">(${esc(x.status)})</span></div>${x.desc?`<div class="p-desc">${x.desc.split(/\r?\n/).filter(line=>line.trim()).map(line=>`<div class="p-desc-line">${esc(line)}</div>`).join('')}</div>`:''}</div>`).join(''):'<div class="p-item">—</div>');
@@ -80,7 +80,7 @@ function printProtocol(){
  const extra=data.board.filter(x=>x.present&&x.extra).map(x=>x.name).join(', ')||'—';
  const leader=data.board.find(x=>x.leader&&x.present);
  const rows=[['Anwesend vom Vorstand:',present],['Anwesend Mitglieder:',extra],['Abwesend:',absent],['Versammlungsführer:',leader?leader.name:'—'],['Versammlungsort:',place],['Sitzungsbeginn:',m.time+' Uhr'],['Sitzungsende:',m.end?m.end+' Uhr':'________ Uhr']];
- const headings={review:'Erledigte Themen seit letzter Sitzung',agenda:'Aktuelle Themen',oldopen:'Offene Punkte aus früheren Sitzungen',next:'Themen für nächste Sitzung'};
+ const headings={review:'Erledigte Themen seit letzter Sitzung',agenda:'Sportlicher Rückblick',oldopen:'Offene Punkte aus früheren Sitzungen',next:'Themen für nächste Sitzung'};
  const sections=['review','agenda'].map(sec=>{
  const entries=data.items.filter(x=>x.section===sec);
  return `<div class="p-section">${headings[sec]}</div>`+(entries.length?entries.map(x=>`<div class="p-item"><div class="p-item-title">${esc(x.title)} <span class="p-status">(${esc(x.status)})</span></div>${x.desc?`<div class="p-desc">${x.desc.split(/\r?\n/).filter(line=>line.trim()).map(line=>`<div class="p-desc-line">${esc(line)}</div>`).join('')}</div>`:''}</div>`).join(''):'<div class="p-item">—</div>');
@@ -111,9 +111,10 @@ function importParticipation(input){
  if(previous.expected!==input.expected)throw Error('Der Sitzungspunkt wurde inzwischen geändert. Bitte die Vorschau neu prüfen.');
  const backup=JSON.parse(JSON.stringify(data));
  let item=previous.existing?data.items.find(x=>x.id===previous.existing.id):null;
- if(!item){item={id:Math.max(Date.now(),...data.items.map(x=>Number(x.id)||0))+1,section:'review',status:'Erledigt'};data.items.push(item);}
+ if(!item){item={id:Math.max(Date.now(),...data.items.map(x=>Number(x.id)||0))+1,section:'agenda',status:'Erledigt'};data.items.push(item);}
  Object.assign(item,{title:input.title,desc:input.desc,source:'ecw-participation-v1',sourceYear:input.year,participationSelection:input.selection,participationUpdatedAt:new Date().toISOString()});
  try{localStorage.setItem(KEY,JSON.stringify(data));}catch(e){data=backup;throw Error('Speichern im Browser fehlgeschlagen: '+e.message);}
  render();return {id:item.id};
 }
+if(!data.archived&&!data.participationSectionV2){data.items.filter(x=>x.source==='ecw-participation-v1').forEach(x=>{x.section='agenda';x.desc=String(x.desc||'').split('\n').filter(line=>!/^Hinweis: \d+ ausgewählte Einträge ohne Spielernamen sind nur in den Mannschaftszahlen enthalten\.$/.test(line)&&!line.startsWith('Grundlage: ausgewählte vergangene Terminplaner-Einträge.')).join('\n').trimEnd();});data.participationSectionV2=true;save();render();}
 window.msApi={participationState,importParticipation,archiveState(){return {archived:data.archived,hidden:data.archiveEntryDeleted===true,date:data.meeting?.date||''}},hideArchiveEntry(value){data.archiveEntryDeleted=value;save()},addAttendee:addAttendee,addBoardMember:addBoardMember,addCollection:addCollection,addQuick:addQuick,addToSection:addToSection,dateDE:dateDE,deleteItem:deleteItem,editItem:editItem,el:el,esc:esc,finish:finish,itemHtml:itemHtml,lineupChange:lineupChange,lineupPrint:lineupPrint,moveNext:moveNext,options:options,printProtocol:printProtocol,removeCollection:removeCollection,removeMember:removeMember,render:render,renderArchive:renderArchive,renderAttendance:renderAttendance,renderLineups:renderLineups,renderMeetingMeta:renderMeetingMeta,save:save,saveEdit:saveEdit,saveMeetingMeta:saveMeetingMeta,setLeader:setLeader,setStatus:setStatus,takeCollection:takeCollection,toggleAdmin:toggleAdmin,updateMember:updateMember};})();

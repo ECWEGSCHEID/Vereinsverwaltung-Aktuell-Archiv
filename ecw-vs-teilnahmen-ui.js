@@ -1,7 +1,8 @@
 (() => {
 'use strict';
-const root=document.getElementById('msModule');if(!root||!window.msApi)return;
-const core=window.ecwParticipationCore,$=id=>document.getElementById(id);
+function mount(target,host,prefix){
+const targetApi=target==='secretary'?window.secretaryApi:window.msApi;if(!targetApi)return;
+const core=window.ecwParticipationCore,$=id=>document.getElementById(id.startsWith('msParticipation')?id.replace('msParticipation',prefix):id);
 let snapshot=null,sourceSignature='',state=null,current=null;
 function today(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
 function status(s){$('msParticipationStatus').textContent=s;}
@@ -12,7 +13,7 @@ function setPreview(){
  if(!snapshot)return;
  const year=+$('msParticipationYear').value,keys=new Set([...$('msParticipationEntries').querySelectorAll('input:checked')].map(x=>x.value));
  const selected=snapshot.records.filter(x=>keys.has(x.key));current=core.summarize(selected,year);
- state=window.msApi.participationState(year);
+ state=targetApi.participationState(year);
  $('msParticipationText').textContent=core.report(current).desc;
  $('msParticipationApply').disabled=state.archived||current.total===0;
  status(state.archived?'Diese Sitzung ist freigegeben und gesperrt.':`${current.tournaments} Turnierteilnahmen und ${current.championships} Meisterschaftsteilnahmen ausgewählt. ${state.existing?'Der bereits übernommene Jahrespunkt wird beim Bestätigen ersetzt.':'Es wird ein eigener Rückblick-Punkt angelegt.'}`);
@@ -48,7 +49,8 @@ const panel=document.createElement('div');panel.className='panel no-print';panel
 <details open><summary>Textvorschau für die Mannschaftssitzung</summary><pre id="msParticipationText" style="white-space:pre-wrap;font:inherit"></pre></details>
 <button type="button" id="msParticipationApply" class="btn red" disabled>Als Rückblick-Punkt übernehmen</button>
 <p class="small">Die Übernahme speichert im Browser. Für die geräteübergreifende Speicherung anschließend wie gewohnt „In Firebase speichern“ benutzen. Bereits archivierte Sitzungen werden nicht geändert.</p>`;
-const meeting=root.querySelector('#ms_meeting');if(!meeting)return;meeting.prepend(panel);
+panel.innerHTML=panel.innerHTML.replaceAll('msParticipation',prefix);host.prepend(panel);
+if(target==='secretary'){$('msParticipationApply').textContent='Unter Jahresbericht übernehmen';}
 $('msParticipationLoad').onclick=refresh;$('msParticipationYear').onchange=renderEntries;
 $('msParticipationApply').onclick=()=>{
  try{
@@ -56,8 +58,11 @@ $('msParticipationApply').onclick=()=>{
   if(signature(read())!==sourceSignature)throw Error('Die Terminplanerdaten wurden inzwischen geändert. Bitte die Vorschau neu laden.');
   if(!confirm(`${current.total} ausgewählte Mannschaftsteilnahmen für ${current.year} übernehmen?${state.existing?' Der bestehende automatisch übernommene Punkt einschließlich seiner Textänderungen wird ersetzt. Andere Sitzungspunkte bleiben erhalten.':''}`))return;
   const report=core.report(current);
-  window.msApi.importParticipation({year:current.year,...report,expected:state.expected,selection:current.records.map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,players:r.players})),});
-  state=window.msApi.participationState(current.year);status('Als bearbeitbarer Rückblick-Punkt im Browser gespeichert. Für die Sicherung auf anderen Geräten bitte „In Firebase speichern“ wählen.');
+  targetApi.importParticipation({year:current.year,...report,expected:state.expected,selection:current.records.map(r=>({id:r.id,date:r.date,name:r.name,type:r.type,players:r.players})),});
+  state=targetApi.participationState(current.year);status('Als bearbeitbarer Rückblick-Punkt im Browser gespeichert. Für die Sicherung auf anderen Geräten bitte „In Firebase speichern“ wählen.');
  }catch(e){status(e.message);}
 };
+}
+const meeting=document.getElementById('ms_meeting');if(meeting)mount('team',meeting,'msParticipation');
+const dialog=document.createElement('dialog');dialog.style.cssText='width:min(1000px,96vw);max-height:92vh;overflow:auto;padding:18px';const close=document.createElement('button');close.textContent='Schließen';close.className='btn';close.onclick=()=>dialog.close();dialog.append(close);const host=document.createElement('div');dialog.append(host);document.body.append(dialog);mount('secretary',host,'secretaryParticipation');window.ecwOpenSecretaryParticipation=()=>dialog.showModal();
 })();

@@ -1,0 +1,34 @@
+Die folgende match-Regel INNERHALB von
+match /databases/{database}/documents { ... }
+in die vorhandenen Firestore-Regeln einfügen und veröffentlichen.
+Die bestehenden Regeln einschließlich Versammlungen/Chunks behalten.
+Ohne diese Ergänzung können mobile Punkte nicht gespeichert/geladen werden.
+
+match /versammlungenMobile/{entryId} {
+  function mobileMeetingAllowed() {
+    return request.auth != null
+      && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+      && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('active', true) != false
+      && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('admin', false) == true
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('vs', false) == true);
+  }
+  allow get, list: if mobileMeetingAllowed();
+  allow create: if mobileMeetingAllowed()
+    && request.resource.data.keys().hasOnly(['kind','title','desc','status','createdBy','createdAt'])
+    && request.resource.data.kind in ['board','work']
+    && request.resource.data.title is string
+    && request.resource.data.title.size() > 0
+    && request.resource.data.title.size() <= 160
+    && request.resource.data.desc is string
+    && request.resource.data.desc.size() <= 10000
+    && request.resource.data.status == 'pending'
+    && request.resource.data.createdBy == request.auth.uid
+    && request.resource.data.createdAt == request.time;
+  allow update: if mobileMeetingAllowed()
+    && resource.data.status == 'pending'
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','importedAt','importedBy'])
+    && request.resource.data.status == 'imported'
+    && request.resource.data.importedBy == request.auth.uid
+    && request.resource.data.importedAt == request.time;
+  allow delete: if false;
+}

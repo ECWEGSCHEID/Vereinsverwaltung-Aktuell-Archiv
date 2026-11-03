@@ -36,8 +36,8 @@ function report(summary){
  const s=summary,lines=[`Ausgewertetes Vereinsjahr: ${s.year}`,`• Turnierteilnahmen (Mannschaftsmeldungen): ${s.tournaments}`,`• Meisterschaftsteilnahmen (Mannschaftsmeldungen): ${s.championships}`,`• Teilnahmen insgesamt: ${s.total}`,'','Turnier- und Meisterschaftsteilnahmen je Spieler'];
  if(!s.players.length)lines.push('• Keine Spielernamen in den ausgewählten Einträgen erfasst.');
  s.players.forEach((p,i)=>lines.push(`• ${i+1}. ${p.name}: ${p.tournaments} Turniere, ${p.championships} Meisterschaften – ${p.total} Teilnahmen gesamt`));
- if(s.withoutPlayers)lines.push('',`Hinweis: ${s.withoutPlayers} ausgewählte Einträge ohne Spielernamen sind nur in den Mannschaftszahlen enthalten.`);
- lines.push('','Grundlage: ausgewählte vergangene Terminplaner-Einträge. Jeder Eintrag zählt als eine Mannschaftsteilnahme; jeder Spieler wird je Eintrag einmal gezählt. Interne und selbst ausgerichtete Turniere sind nicht enthalten. Die Auswahl wurde vor der Übernahme geprüft.');
+
+
  return {title:`Sportlicher Rückblick ${s.year} – Turniere und Meisterschaften`,desc:lines.join('\n')};
 }
 window.ecwParticipationCore={date,project,summarize,report};

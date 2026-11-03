@@ -2485,7 +2485,7 @@ const firebaseConfig={
   messagingSenderId:"558472054725",
   appId:"1:558472054725:web:10145e2d8d6f168b056dac"
 };
-const PERM_KEYS=['tp','tv','jm','t','o','n','p','sp','mv','m','lk','sh','shView','tpView','tView','oView','nView','pView','spView','mView','lkView','mvView'];
+const PERM_KEYS=['tp','tv','jm','t','o','n','p','sp','mv','m','lk','sh','shView','tpView','tView','oView','nView','pView','spView','mView','lkView','mvView','vs'];
 const qs=new URLSearchParams(location.search);
 const QR_MODE=qs.get('qr')==='1';
 let auth=null,db=null,currentUser=null,profile=null,jmState=null;
@@ -2495,7 +2495,7 @@ function setStatus(id,text,type=''){
   const el=$(id);if(!el)return;el.textContent=text||'';el.className='status'+(type?' '+type:'');
 }
 function show(id){
-  ['qrView','loginView','homeView','newsView','plannerView','jmView'].forEach(x=>$(x)?.classList.add('hidden'));
+  ['qrView','loginView','homeView','newsView','plannerView','jmView','moreView','mobilePointView'].forEach(x=>$(x)?.classList.add('hidden'));
   $(id)?.classList.remove('hidden');
 }
 function can(k){return !!(profile&&(profile.admin===true||profile[k]===true))}
@@ -2705,5 +2705,5 @@ document.addEventListener('DOMContentLoaded',()=>{
   initApp();
 });
 </script>
-</body>
+<script src="ecw-mobile-navigation.js?v=1"></script></body>
 </html>

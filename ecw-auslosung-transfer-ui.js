@@ -69,6 +69,7 @@ panel.innerHTML=`<h2>4. Auslosung übernehmen</h2>
 <p id="transfer-skmr-info">Die Spielernamen werden in die SKMR-Felder für Vor- und Nachname geschrieben. Die vorgeschlagene Trennung bitte oben prüfen (Anmeldeliste: Nachname Vorname).</p>
 <button type="button" id="transfer-skmr-preview" class="btn btn-primary">SKMR-Vorschau</button>
 <button type="button" id="transfer-skmr-save" class="btn btn-success">Befüllte SKMR speichern</button>
+<button type="button" id="transfer-onedrive-save" class="btn btn-info">SKMR direkt in OneDrive speichern</button>
 <p id="transfer-status" role="status" aria-live="polite"></p><div id="transfer-preview" style="overflow-x:auto"></div>`;
 (document.querySelector('.container')||document.body).append(panel);
 $('transfer-refresh').onclick=refresh;
@@ -114,6 +115,24 @@ $('transfer-skmr-save').onclick=async()=>{
    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=suggested;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);status('Der Download der befüllten SKMR-Datei wurde gestartet. Die ursprüngliche Datei bleibt erhalten.');
   }
  }catch(e){if(e.name!=='AbortError')status('Nicht gespeichert: '+e.message);}finally{busy=false;}
+};
+$('transfer-onedrive-save').onclick=async()=>{
+ if(busy)return;
+ let tab=null;
+ try{
+  const r=skmrResult();renderMapping(r.mapping);
+  if(!window.ecwOneDriveStore)throw Error('Die OneDrive-Dateiübergabe konnte nicht geladen werden. Bitte alle Update-Dateien hochladen und die Seite neu laden.');
+  if(!confirm(r.withPlayers?'Die befüllte SKMR-Datei für OneDrive bereitstellen? Im neuen Tab anmelden und dort das Speichern bestätigen.':'Nur Mannschaftsnamen für OneDrive bereitstellen? Die Spielernamen werden nicht übernommen.'))return;
+  tab=window.open('about:blank','_blank');
+  if(!tab)throw Error('Bitte neue Tabs / Pop-ups für die Vereinsverwaltung erlauben und den OneDrive-Button erneut antippen.');
+  tab.document.title='EC Wegscheid – OneDrive';tab.document.body.textContent='SKMR-Datei wird für OneDrive vorbereitet …';
+  busy=true;$('transfer-onedrive-save').disabled=true;
+  const id=await window.ecwOneDriveStore.put(r.xml,filename.replace(/\.skmr$/i,'')+'_Auslosung.skmr');
+  const target=new URL('ecw-onedrive.html',document.baseURI);target.hash='job='+id;
+  tab.opener=null;tab.location.replace(target.href);
+  status('OneDrive-Seite geöffnet. Dort einmalig die Microsoft-App einrichten, anmelden und die Speicherung bestätigen. Bis dahin wurde nichts in OneDrive gespeichert.');
+ }catch(e){if(tab&&!tab.closed)tab.close();status('OneDrive nicht gestartet: '+e.message);}
+ finally{busy=false;$('transfer-onedrive-save').disabled=false;}
 };
 const finish=finishDrawProcessWithDelay;
 finishDrawProcessWithDelay=async function(...args){sync();return finish.apply(this,args);};

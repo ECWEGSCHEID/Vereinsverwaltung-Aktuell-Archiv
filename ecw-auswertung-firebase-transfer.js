@@ -704,3 +704,15 @@
         tx.set(ref,write,{mergeFields:['tournaments','updatedAt','updatedBy']});return changed;
       });
     };
+
+    // Zentrale Spielerliste wird nur nach Anmeldung gelesen; kein Daten-Fallback im Quellcode.
+    window.ecwDrawLoadPlayerList=async function(){
+      const role=window.getEffectiveRole?.(),uid=window.currentFirebaseUser?.uid;
+      if(!window.currentFirebaseUser||!['admin','whiteboard'].includes(role))throw new Error('Bitte mit freigegebenem Konto anmelden.');
+      let value;
+      if(CENTRAL_PARENT){const snapshot=await CENTRAL_PARENT.firestoreDb.collection('appSettings').doc('playerList').get({source:'server'});value=snapshot.exists?snapshot.data():null;}
+      else {const snapshot=await getDoc(doc(db,'appSettings','playerList'));value=snapshot.exists()?snapshot.data():null;}
+      if(window.currentFirebaseUser?.uid!==uid||!['admin','whiteboard'].includes(window.getEffectiveRole?.()))throw new Error('Die Anmeldung wurde inzwischen beendet oder geändert.');
+      if(!value||!Array.isArray(value.players))throw new Error('In Firebase ist noch keine zentrale Spielerliste gespeichert. Namen können weiterhin manuell erfasst werden.');
+      return JSON.parse(JSON.stringify(value.players));
+    };

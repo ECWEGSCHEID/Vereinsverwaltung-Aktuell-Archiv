@@ -1,0 +1,86 @@
+EC Wegscheid – SKMR direkt in OneDrive speichern
+
+INSTALLATION
+Alle Dateien dieses Update-Pakets in den Hauptordner des bestehenden
+GitHub-Repositorys hochladen. Vorhandene gleichnamige Dateien ersetzen.
+Die bisherigen übrigen Dateien und assets behalten.
+Danach mit Strg+Umschalt+R neu laden.
+
+EINMALIGE MICROSOFT-EINRICHTUNG
+Die Funktion benötigt eine eigene Microsoft-Appregistrierung. Diese kann
+nicht durch die Programmdateien automatisch für dein Konto angelegt werden.
+Keine Passwörter oder geheimen Clientschlüssel in das Programm eintragen.
+
+1. https://entra.microsoft.com öffnen und mit deinem Microsoft-Konto anmelden.
+2. Unter Appregistrierungen eine neue Registrierung erstellen.
+3. Name: EC Wegscheid SKMR
+4. Unterstützte Kontotypen: Konten in beliebigen Organisationsverzeichnissen
+   und persönliche Microsoft-Konten.
+5. Plattform für Umleitung: Single-Page-Anwendung (SPA).
+6. Diese URI exakt eintragen:
+   https://ecwegscheid.github.io/Vereinsverwaltung-Aktuell/ecw-onedrive.html
+   Falls der tatsächliche Website-Pfad abweicht, die genaue URI verwenden,
+   die die neue OneDrive-Seite unter „Einmalige Microsoft-Einrichtung“ zeigt.
+   Nicht „Web“ wählen. Kein implizites Zugriffs- oder ID-Token-Verfahren aktivieren.
+7. Nach der Registrierung die Anwendungs-ID (Client-ID) kopieren.
+8. Unter API-Berechtigungen: Microsoft Graph → Delegierte Berechtigungen →
+   Files.ReadWrite.AppFolder hinzufügen. Es werden keine Anwendungsrechte
+   oder Rechte auf alle Dateien benötigt. Bei Organisationskonten kann
+   der Microsoft-Administrator eine Zustimmung vorgeben.
+9. Am Whiteboard im Auslosungsprogramm eine SKMR-Vorlage auswählen und befüllen.
+10. „SKMR direkt in OneDrive speichern“ antippen. Im neuen Tab die Einrichtung
+    aufklappen, die Anwendungs-ID eintragen und „Einrichtung speichern“ wählen.
+    Diese öffentliche ID wird nur im Browser dieses Geräts hinterlegt.
+
+BEDIENUNG
+1. Auslosung durchführen, gewünschte Bezeichnung und SKMR-Vorlage wählen.
+2. „SKMR direkt in OneDrive speichern“ antippen.
+3. Falls erforderlich im neuen Tab „Mit Microsoft anmelden“ wählen.
+   Die Anmeldung erfolgt direkt bei Microsoft und kehrt auf diese Seite zurück.
+4. Konto und angezeigten Dateinamen prüfen.
+5. „Jetzt in OneDrive speichern“ antippen und bestätigen.
+6. Die Erfolgsmeldung abwarten. Danach kann die gespeicherte Datei geöffnet
+   oder zur Auslosung im ursprünglichen Tab zurückgekehrt werden.
+
+SPEICHERORT
+OneDrive → Apps → EC Wegscheid SKMR
+Bei einem anderen Appnamen heißt auch der App-Ordner entsprechend anders.
+Die Funktion hat Zugriff nur auf diesen eigenen App-Ordner.
+Sie erstellt keine öffentlichen Freigabelinks.
+Jeder Export erhält Datum, Uhrzeit und eine eindeutige Kennung im Dateinamen.
+Dadurch werden bestehende, anders benannte Dateien nicht ersetzt.
+Wird derselbe Export nach einer unklaren Netzwerkantwort erneut gespeichert,
+wird derselbe Exportname verwendet. Bitte bei unklarer Meldung zuerst
+in OneDrive prüfen, ob die Datei schon vorhanden ist.
+
+WHITEBOARD
+Der OneDrive-Export nutzt bewusst einen eigenen Browser-Tab. Die Anmeldung
+wird nicht im eingebetteten Auslosungsfenster gestartet.
+Neue Tabs/Pop-ups für die Vereinsverwaltung müssen erlaubt sein.
+Der Browser muss HTTPS, Web Crypto und IndexedDB unterstützen.
+Bei fehlender Unterstützung erscheint eine Meldung; der bisherige lokale
+SKMR-Download bleibt verfügbar. Die Microsoft-Anmeldung im Samsung-WM65B-
+Browser muss am Gerät noch ausprobiert werden.
+
+LOKALE DATEIÜBERGABE
+Die Exportdatei liegt zur Übergabe an die Microsoft-Anmeldeseite kurzzeitig
+in IndexedDB im Browser. Sie wird nach bestätigtem Upload entfernt.
+Über „Lokale Exportkopie entfernen“ lässt sie sich manuell löschen.
+Abgebrochene Übergaben laufen nach 24 Stunden ab und werden bei der nächsten
+Nutzung der Übergabe entfernt. Die Datei wird nicht in Firebase abgelegt.
+Microsoft-Sitzungsdaten liegen über MSAL im Sitzungsspeicher des Export-Tabs.
+Die Anwendungs-ID bleibt als öffentliche Einstellung im Browser gespeichert.
+
+PRÜFSTAND
+Die Integration verwendet Microsoft MSAL Browser 5.27.0 (MIT-Lizenz liegt bei),
+OAuth Authorization Code mit PKCE und Microsoft Graph.
+Mit simulierten Antworten geprüft: fehlende Einrichtung, Login-Umleitung,
+erfolgreicher Upload und Größenbestätigung, ungültige Anmeldung, fehlende
+Berechtigung, voller Speicher, Anfragelimit und Netzwerkfehler.
+Keine echte Anmeldung und kein Upload in dein OneDrive durchgeführt.
+Die Microsoft-Appregistrierung und der Test am Whiteboard stehen noch aus.
+
+Microsoft-Dokumentation:
+https://learn.microsoft.com/en-us/entra/msal/javascript/browser/about-msal-browser
+https://learn.microsoft.com/en-us/graph/onedrive-sharepoint-appfolder
+https://learn.microsoft.com/en-us/graph/api/driveitem-put-content

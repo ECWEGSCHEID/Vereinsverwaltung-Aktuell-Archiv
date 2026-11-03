@@ -1,67 +1,116 @@
-EC Wegscheid – Mannschaftssitzung: Teilnahmen aus Vereinsverwaltung
+BEREINIGTE FASSUNG – nur dieses Paket verwenden
 
-INSTALLATION
-Die sechs Programmdateien dieses Pakets direkt in den Hauptordner des
-bestehenden GitHub-Repositorys hochladen; vorhandene Dateien ersetzen.
-Die übrigen Dateien behalten. Keine Unterordner anlegen.
-ANLEITUNG.txt muss nicht hochgeladen werden.
-Danach Strg+Umschalt+R neu laden.
+Die zuvor im Auslosungscode hinterlegten 69 Spielernamen und die daraus
+abgeleitete Vornamenliste wurden entfernt. Keine Teilnehmerliste wird mit
+Programmdateien oder Anleitungen ausgeliefert.
 
-Dieses Update wurde auf Basis der aktuell öffentlich geladenen index.html
-mit ecw-hauptprogramm-v2956.js und ecw-versammlungen-v2956.html erstellt.
-Es ersetzt das Hauptprogramm selbst nicht. Falls du inzwischen auf eine
-andere Version umgestellt hast, vor Installation die Einbindung abgleichen.
+In der Auslosung „Spielerliste aus Firebase laden“ verwenden. Dafür muss ein
+freigegebenes Konto angemeldet und die zentrale Spielerliste unter
+appSettings/playerList bereits gespeichert sein. Der vorhandene Leseschutz
+für appSettings/playerList muss in Firebase aktiv bleiben; dieses Dokument
+darf nicht öffentlich lesbar sein. Fehlt die Liste oder die Berechtigung,
+bleibt die manuelle Eingabe möglich. Es gibt keinen Namens-Fallback im Code.
+Die geschützte Liste wird nur auf bewussten Klick gelesen.
 
-BEDIENUNG
-1. Mit Berechtigung für Versammlungen in der Vereinsverwaltung anmelden.
-2. Versammlungen und Arbeitseinsätze → Mannschaftssitzung öffnen.
-3. Im neuen Bereich „Turnier- und Meisterschaftsteilnahmen übernehmen“
-   auf „Aus Vereinsverwaltung laden / Vorschau“ klicken.
-4. Vereinsjahr auswählen.
-5. „Einträge prüfen und bei Bedarf abwählen“ öffnen und die Auswahl prüfen.
-6. Textvorschau prüfen und „Als Rückblick-Punkt übernehmen“ bestätigen.
-7. Der neue Punkt steht im Rückblick. Titel und Text bleiben bearbeitbar.
-8. Anschließend „In Firebase speichern“ benutzen, damit die Mannschaftssitzung
-   auf anderen Geräten verfügbar ist. Das Einfügen allein speichert lokal.
+Für die Moar-Regel gibt es „Spielerinnen kennzeichnen“. Die Kennzeichnung
+wird nur im geöffneten Auslosungsfenster gehalten. Falls die zentrale Liste
+bereits eindeutige female/gender-Merkmale enthält, werden diese übernommen;
+andernfalls vor der Auslosung selbst prüfen und markieren.
 
-ZÄHLWEISE
-- Grundlage ist der bereits geladene Terminplaner der Vereinsverwaltung.
-- Gezählt werden vergangene externe Turniere und Meisterschaften.
-- Heutige und zukünftige Termine sowie ausdrücklich als abgesagt/storniert
-  erkennbare Einträge werden ausgeschlossen.
-- Interne Turniere und eigene Ausrichtungen zählen nicht als externe Teilnahme.
-- Ein Terminplanereintrag ist eine Mannschaftsteilnahme. Wenn mehrere
-  Mannschaften in getrennten Einträgen gemeldet wurden, zählen sie getrennt.
-  Dies ist nicht automatisch die Anzahl verschiedener Turnierveranstaltungen.
-- Ein vergangener Termin ist kein Anwesenheitsnachweis. Vor der Übernahme
-  Einträge abwählen, die tatsächlich nicht bestritten wurden.
-- Jeder eingetragene Spieler zählt pro Eintrag einmal; X und leere Plätze
-  zählen nicht. Hinterlegte Namens-Aliase werden aufgelöst, Groß-/Kleinschreibung
-  und überflüssige Leerzeichen werden für die Zählung zusammengeführt.
-- Identische doppelte Datensätze werden einmal gezählt und gemeldet.
-- Einträge ohne Spieler zählen nur in die Mannschaftszahlen. Ein Hinweis in
-  der Auswertung nennt die Anzahl solcher Einträge.
-- Spielernamen und Einsätze werden nach Turnierteilnahmen, dann
-  Meisterschaftsteilnahmen absteigend aufgelistet.
-- Fehlende Einträge oder Spieler können nicht aus anderen Quellen ergänzt
-  werden. Eine leere Vorschau wird nicht als vermeintlich vollständige
-  Null-Statistik in die Sitzung übernommen.
+Alle HTML-/JS-Dateien dieses bereinigten Pakets statt der alten Version
+hochladen/ersetzen und vollständig neu laden. Die Testliste liegt bei.
+Die Firebase-Regelergänzung für mobile Punkte bleibt weiterhin erforderlich.
 
-ERNEUTE ÜBERNAHME
-Pro Jahr wird ein eigener, markierter Rückblick-Punkt angelegt. Bei erneuter
-Übernahme wird ausdrücklich bestätigt, dass dieser Punkt einschließlich
-manueller Änderungen an seinem Text ersetzt wird. Andere Sitzungspunkte und
-Mannschaftsaufstellungen bleiben erhalten.
-Freigegebene/archivierte Sitzungen können nicht geändert werden.
-Ändert sich der Terminplaner nach dem Laden der Vorschau, muss die Vorschau
-vor der Übernahme neu geladen werden.
+Dieses Update bereinigt seine eigenen Dateien. Bereits früher veröffentlichte
+Dateien sowie die GitHub-Versionshistorie werden dadurch nicht automatisch
+bereinigt. Das bisherige Hauptprogramm wird weiterhin aus dem bestehenden
+Repository geladen und ist nicht Teil dieser Prüfung.
 
-DATEN UND PRÜFUNG
-Keine zusätzlichen Firebase-Lesezugriffe: Die Vorschau liest die bereits
-in der angemeldeten Verwaltung geladenen Terminplanerdaten.
-Das Paket enthält keine vorab eingesetzten Mitgliederdaten oder Teilnahmen.
-Geprüft wurden Datums-/Jahresfilter, abgesagte und zukünftige Termine, Aliase,
-Platzhalter, Duplikate, Spielerstatistik, Abwahl, Einfügen und Ersetzen eines
-Punkts, Konfliktprüfung, Archivschutz und lokale Speicherfehler.
-JavaScript-Syntax und Einbindung wurden geprüft.
-Der Bedien- und Firebase-Test in deiner laufenden Oberfläche steht noch aus.
+EC Wegscheid – Mobilzugang und Berichte, Stand 03.11.2026
+
+DIESES PAKET IST EIN UPDATE FÜR DAS BESTEHENDE REPOSITORY
+1. Bisherigen Repository-Stand sichern.
+2. ZIP entpacken. Alle HTML- und JavaScript-Dateien direkt in den Hauptordner
+   des bestehenden GitHub-Repositorys hochladen und gleichnamige ersetzen.
+   Keine zusätzlichen Unterordner anlegen. Bestehende übrige Dateien behalten.
+   Die Textanleitungen und Testliste müssen nicht auf GitHub hochgeladen werden.
+   MSAL-LICENSE.txt für die mitgelieferte Microsoft-Bibliothek beibehalten.
+3. Die Regel aus FIREBASE_REGELERGAENZUNG.txt in die bestehenden Firestore-Regeln
+   innerhalb von match /databases/{database}/documents einfügen und veröffentlichen.
+   Die bisherigen Regeln nicht durch den Ausschnitt ersetzen.
+4. Browser mit Strg+Umschalt+R neu laden. Am Smartphone die Seite neu laden;
+   bei weiter alter Ansicht zunächst Browser-Cache für die Seite aktualisieren.
+5. Tests in TESTLISTE_Mobilzugang_und_Berichte.md durchgehen.
+
+MOBILZUGANG
+Erste Ebene:
+- Turnierverwaltung
+- Turnier / Termin anlegen
+- Vorstandssitzung → Tagesordnungspunkt hinzufügen
+- Arbeitseinsatz → Punkt hinzufügen
+- Weitere Funktionen
+Zweite Ebene unter Weitere Funktionen:
+- Vereinsnachrichten
+- Ziel Jahresmeisterschaft
+- Interne Cup (öffnet die vorhandene Cupauswertung)
+Die jeweiligen Berechtigungen der Zielmodule bleiben maßgeblich.
+Für die neuen mobilen Punkte braucht das Konto admin=true oder vs=true.
+
+MOBILE PUNKTE
+Die Smartphone-Eingabe schreibt einen neuen Punkt in den gemeinsamen
+Firebase-Eingang versammlungenMobile. Sie verändert keinen kompletten
+Sitzungsstand und wird nicht sofort einem beliebigen Arbeitseinsatz zugeordnet.
+In Versammlungen und Arbeitseinsätze:
+- Aktuellen gemeinsamen Firebase-Stand laden/abgleichen.
+- „Mobile Punkte laden“ wählen (höchstens 50 offene Punkte pro Abruf).
+- Für Arbeitspunkte einen vorhandenen offenen Arbeitseinsatz auswählen.
+  Fehlt einer, zunächst einen Arbeitseinsatz anlegen und erneut laden.
+- Übernahme bestätigen. Vorstandspunkte gehen in die aktuelle ungesperrte
+  Vorstandssitzung unter Tagesordnung; Arbeitspunkte in den gewählten Einsatz.
+- Die Übernahme speichert den geänderten Versammlungsstand in Firebase.
+  Erst nach Bestätigung wird der Eingangspunkt als übernommen quittiert.
+- Bei Fehlern oder Konflikten bleibt der Eingangspunkt offen. Ein bereits
+  lokal übernommener Punkt wird anhand seiner Eingangskennung nicht dupliziert.
+- Es gibt keine zusätzliche dauernde Firebase-Abfrage; der Eingang wird
+  nur bewusst per Button geladen. Abgeschlossene Einsätze und gesperrte
+  Vorstandssitzungen nehmen keine neuen Punkte an.
+
+TEILNAHMEAUSWERTUNG
+Mannschaftssitzung:
+- Die Übernahme liegt jetzt unter 02 · Sportlicher Rückblick.
+- Vorhandene automatisch übernommene Punkte werden beim Laden eines
+  ungesperrten Entwurfs einmalig dorthin verschoben und von den genannten
+  Erläuterungstexten bereinigt. Archivierte Sitzungen bleiben unverändert.
+Bericht Schriftführer:
+- Unter Jahresbericht gibt es „Turnier- und Meisterschaftsteilnahmen übernehmen“.
+- Vereinsjahr wählen, Daten laden, Einträge prüfen/abwählen und bestätigen.
+- Es wird ein bearbeitbarer Punkt ausschließlich unter Jahresbericht angelegt.
+  Vorwort, Ergebnisse und Abschlussworte bleiben erhalten.
+- Bei erneuter Übernahme desselben Jahres wird nach Bestätigung nur der
+  betreffende automatisch übernommene Punkt ersetzt.
+- Der Hinweis zu fehlenden Spielernamen und der Absatz „Grundlage …“ sind
+  nicht mehr im Berichtstext enthalten. Prüfinformationen bleiben in der
+  Eingabemaske sichtbar.
+- Wie bisher nach der Teilnahmeübernahme „In Firebase speichern“ wählen.
+- Ein Terminplanereintrag zählt als Mannschaftsteilnahme. Vor der Übernahme
+  prüfen, ob die als vergangen erfassten Termine tatsächlich bestritten wurden.
+
+BISHER VORGEMERKTES AUSLOSUNGSUPDATE IST ENTHALTEN
+- Bis zu 16 Mannschaften, Cupübernahme, Namensanzeige, SKMR und OneDrive.
+- Für OneDrive gilt weiterhin die einmalige Einrichtung gemäß
+  ONEDRIVE_EINRICHTUNG.txt; eine echte Microsoft-App-ID ist erforderlich.
+- Das alte separate Mannschaftssitzung-Update nicht danach erneut hochladen,
+  da es diese Änderungen wieder durch den vorherigen Stand ersetzen würde.
+
+PRÜFSTAND UND GRENZEN
+JavaScript-Syntax und Script-Verweise geprüft. Die fachliche Logik wurde mit
+Testdaten geprüft: Abschnitt 02, bereinigter Berichtstext, Jahresbericht-
+Übernahme, Erhalt manueller Texte, Konflikte, lokale Speicherfehler, mobile
+Dubletten, Archiv-/Abschlussschutz und wiederholte Smartphone-Speicherung
+nach unklarer Netzwerkantwort.
+Der vollständige Browser-/Smartphone-Test und die Prüfung der neuen Regeln
+gegen dein echtes Firebase-Projekt stehen aus. Die Testliste ist dafür offen.
+Die neue Regel ist ein begrenzter Zusatz, keine vollständige Ersatz-Regeldatei.
+Das Paket enthält keine Sitzungs-/Archivdateien oder eingebettete neue
+Mitgliederdaten. Die vorhandenen Programm-Bilder und übrigen Module werden
+weiter aus dem bestehenden Repository geladen.
